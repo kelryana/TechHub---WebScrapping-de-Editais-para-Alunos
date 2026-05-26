@@ -1,1 +1,2 @@
 # TechHub---WebScrapping-de-Editais-para-Alunos
+A ideia do projeto é fazer que o estudante de computação possa achar de maneira ágil e prática todas as informações importantes que ele precisa, como: estágios, bolsas de pesquisa, cursos gratuitos, links para ferramentas oficiais e gratuitas, etc. Inicialmente com dados fornecidos manualmente, mas posteriormente com um sistema automatizado de webscrapping
