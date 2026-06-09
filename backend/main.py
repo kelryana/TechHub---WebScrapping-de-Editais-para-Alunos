@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
+import subprocess
+import sys
 
 # Importa a nossa função de raspar na hora
 from scraper_noticias import atualizar_noticias_agora
@@ -91,3 +93,42 @@ def listar_noticias():
         lista_noticias.append(noticia)
         
     return lista_noticias
+
+# Rota do "Botão Vermelho": Limpa o banco e roda todos os scrapers
+@app.get("/api/buscar-tudo")
+def acionar_todos_os_robos():
+    print("\n[SISTEMA] Iniciando a Varredura Global...")
+    
+    # 1. Limpa todas as coleções para o "Show" da apresentação
+    db["vagas_estagio"].delete_many({})
+    db["vagas_bolsa"].delete_many({})
+    db["vagas_ufersa"].delete_many({})
+    db["vagas_ciee"].delete_many({})
+    # db["vagas_noticias"].delete_many({}) -> A de notícias já se auto-limpa no script dela
+    
+    # Pega o caminho exato do seu Python (para evitar erros de versão)
+    python_exe = sys.executable
+    
+    try:
+        # 2. Roda os scripts silenciosos primeiro
+        print("-> Raspando PRAE...")
+        subprocess.run([python_exe, "scraper_prae.py"])
+        
+        print("-> Raspando PROEX...")
+        subprocess.run([python_exe, "scraper_proex.py"])
+        
+        print("-> Raspando UFERSA...")
+        subprocess.run([python_exe, "scraper_ufersa.py"])
+        
+        # 3. Roda o CIEE (que vai abrir a tela para você interagir)
+        print("-> Raspando CIEE (Atenção ao navegador!)...")
+        subprocess.run([python_exe, "scraper_ciee.py"])
+        
+        # 4. Roda as notícias
+        print("-> Raspando Notícias...")
+        atualizar_noticias_agora()
+        
+        return {"mensagem": "Varredura 100% concluída!"}
+        
+    except Exception as e:
+        return {"erro": str(e)}

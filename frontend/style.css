@@ -156,3 +156,31 @@ button.ativo {
 .card-verde .card-link:hover {
     background-color: #1a5233;
 }
+
+/* O Botão Vermelho de Busca Global */
+#btn-buscar-tudo {
+    position: absolute; /* Fixa ele no canto do header */
+    top: 20px;
+    left: 20px;
+    background-color: #DC143C; /* Vermelho escuro */
+    color: var(--branco);
+    border: 2px solid #8B0000;
+    box-shadow: 3px 3px 0px #8B0000;
+    font-size: 1.1rem;
+    padding: 12px 24px;
+    z-index: 10; /* Garante que fique por cima de tudo */
+}
+
+#btn-buscar-tudo:hover {
+    background-color: #FF0000; /* Vermelho vivo */
+    transform: scale(1.05); /* Dá uma "crescida" ao passar o mouse */
+    border-color: #FF0000;
+}
+
+#btn-buscar-tudo:disabled {
+    background-color: #FFA500; /* Fica laranja enquanto carrega */
+    border-color: #CC8400;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}

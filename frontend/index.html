@@ -7,13 +7,15 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
+    <header style="position: relative;">
+        
+        <button id="btn-buscar-tudo" onclick="acionarTodosOsRobos()">Buscar 🤖</button>
+
         <div class="logo">
             <h1>TechHub <span>UERN</span></h1>
         </div>
         <p>Agregador de Oportunidades para Estudantes</p>
     </header>
-
     <main>
         <div class="controles">
             <button id="btn-estagios" class="ativo" onclick="carregarDados('estagios')">Ver Estágios (PRAE)</button>
