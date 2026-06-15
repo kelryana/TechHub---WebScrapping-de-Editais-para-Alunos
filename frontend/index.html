@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TechHub UERN</title>
+    <title>TechHub UERN - Dashboard de Oportunidades</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,18 +15,27 @@
             <h1>TechHub <span>UERN</span></h1>
         </div>
         <p>Agregador de Oportunidades para Estudantes</p>
+
+        <div class="busca-container" style="margin-top: 15px; padding-bottom: 20px;">
+            <input type="text" id="input-busca" placeholder="Pesquisar editais (ex: estágio, monitoria, TI)..." onkeyup="if(event.key === 'Enter') realizarPesquisa()" style="padding: 8px; width: 300px;">
+            <button id="btn-pesquisar" onclick="realizarPesquisa()" style="padding: 8px 15px;">Buscar 🔍</button>
+        </div>
     </header>
+
     <main>
         <div class="controles">
             <button id="btn-estagios" class="ativo" onclick="carregarDados('estagios')">Ver Estágios (PRAE)</button>
             <button id="btn-bolsas" onclick="carregarDados('bolsas')">Ver Bolsas (PROEX)</button>
             <button id="btn-ufersa" onclick="carregarDados('ufersa')">Ver Editais (UFERSA)</button>
             <button id="btn-ciee" onclick="carregarDados('ciee')">Ver Vagas (CIEE)</button>
-            <button id="btn-noticias" onclick="carregarDados('noticias')" style="border-color: #2E8B57;">Notícias Tech (Ao Vivo) ⚡</button>
+            <button id="btn-noticias" onclick="carregarDados('noticias')" style="border-color: #2E8B57;">Notícias Tech ⚡</button>
+            
+            <button id="btn-analises" onclick="carregarEstatisticas()" style="border-color: #F27A18;">Painel Analítico 📊</button>
+            <button id="btn-inspector" onclick="carregarInspector()" style="border-color: #9C27B0;">MongoDB Inspector 🛡️</button>
         </div>
 
         <div id="container-vagas" class="grid-vagas">
-            <p class="carregando">Carregando oportunidades...</p>
+            <p class="carregando">Carregando oportunidades do banco de dados...</p>
         </div>
     </main>
 

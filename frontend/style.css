@@ -1,12 +1,17 @@
-/* Paleta de Cores baseada no Robô */
+/* Paleta de Cores Otimizada */
 :root {
     --azul-escuro: #09184D;
     --azul-claro: #79D3E6;
     --laranja: #F27A18;
     --fundo: #F4F7F6;
     --branco: #FFFFFF;
+    --verde-suave: #E8F5E9;
+    --verde-forte: #2E8B57;
+    --purpura: #9C27B0;
+    --purpura-suave: #FDF4FF;
 }
 
+/* Reset de Margens e Fontes */
 * {
     margin: 0;
     padding: 0;
@@ -17,103 +22,186 @@
 body {
     background-color: var(--fundo);
     color: var(--azul-escuro);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
+/* Header Premium */
 header {
     background-color: var(--azul-escuro);
     color: var(--branco);
-    padding: 2rem;
+    padding: 3rem 2rem 2.5rem 2rem;
     text-align: center;
-    border-bottom: 5px solid var(--azul-claro);
+    border-bottom: 6px solid var(--azul-claro);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+header h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 0.5rem;
 }
 
 header h1 span {
     color: var(--laranja);
 }
 
-main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
+header p {
+    font-size: 1.1rem;
+    color: var(--azul-claro);
+    font-weight: 500;
 }
 
+/* Estilização da Nova Barra de Busca */
+.busca-container {
+    display: flex;
+    max-width: 600px;
+    margin: 1.5rem auto 0 auto;
+    background: var(--branco);
+    padding: 6px;
+    border: 3px solid var(--azul-escuro);
+    border-radius: 12px;
+    box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.15);
+}
+
+.busca-container input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 10px 15px;
+    font-size: 1rem;
+    color: var(--azul-escuro);
+    background: transparent;
+}
+
+.busca-container button {
+    background-color: var(--laranja);
+    color: var(--branco);
+    border: 2px solid var(--azul-escuro);
+    border-radius: 8px;
+    padding: 8px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 2px 2px 0px var(--azul-escuro);
+    position: static !important; /* Anula o absoluto do botão de buscar tudo */
+}
+
+.busca-container button:hover {
+    background-color: #d96912;
+    transform: translateY(-1px);
+}
+
+/* Área Principal */
+main {
+    flex: 1;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2.5rem 2rem;
+}
+
+/* Alinhamento dos Botões de Filtro */
 .controles {
     display: flex;
     justify-content: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap; /* Isso faz os botões pularem de linha se a tela for pequena */
+    gap: 0.8rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
 }
 
-button {
+/* Estilo dos Botões - Efeito Cartoon Moderno (Neo-Brutalismo) */
+.controles button {
     background-color: var(--branco);
     color: var(--azul-escuro);
-    border: 2px solid var(--azul-escuro);
-    padding: 10px 20px;
-    font-size: 1rem;
-    font-weight: bold;
-    border-radius: 8px;
+    border: 3px solid var(--azul-escuro);
+    padding: 12px 22px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: 10px;
     cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 4px 4px 0px var(--azul-escuro);
+}
+
+.controles button:hover {
+    background-color: var(--azul-claro);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px var(--azul-escuro);
+}
+
+.controles button.ativo {
+    background-color: var(--laranja);
+    color: var(--branco);
+    border-color: var(--azul-escuro);
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px var(--azul-escuro);
+}
+
+/* Grid de Exibição Dinâmica */
+.grid-vagas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.8rem;
     transition: all 0.3s;
 }
 
-button:hover {
-    background-color: var(--azul-claro);
-    color: var(--azul-escuro);
-}
-
-button.ativo {
-    background-color: var(--laranja);
-    color: var(--branco);
-    border-color: var(--laranja);
-}
-
-/* Grid dos Cards */
-.grid-vagas {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-}
-
-/* Estilo Individual do Card */
+/* Design Lindo para os Cards */
 .card {
     background-color: var(--branco);
-    border: 2px solid var(--azul-escuro);
-    border-radius: 10px;
-    padding: 1.5rem;
-    box-shadow: 4px 4px 0px var(--azul-claro); /* Sombreado duro estilo cartoon */
-    transition: transform 0.2s;
+    border: 3px solid var(--azul-escuro);
+    border-radius: 14px;
+    padding: 1.8rem;
+    box-shadow: 5px 5px 0px var(--azul-claro);
+    transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    animation: surgimento 0.4s ease-out;
+}
+
+@keyframes surgimento {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 6px 6px 0px var(--laranja);
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0px var(--laranja);
 }
 
 .card-categoria {
     background-color: var(--azul-claro);
     color: var(--azul-escuro);
-    font-size: 0.8rem;
-    font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    border: 2px solid var(--azul-escuro);
+    border-radius: 6px;
     display: inline-block;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
 }
 
 .card-titulo {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    font-weight: 700;
     margin-bottom: 15px;
     line-height: 1.4;
+    color: var(--azul-escuro);
 }
 
 .card-fonte {
-    font-size: 0.9rem;
-    color: gray;
-    margin-bottom: 15px;
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 20px;
 }
 
 .card-link {
@@ -121,66 +209,100 @@ button.ativo {
     color: var(--branco);
     text-decoration: none;
     text-align: center;
-    padding: 10px;
-    border-radius: 5px;
-    font-weight: bold;
-    transition: background 0.3s;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    border: 2px solid var(--azul-escuro);
+    transition: all 0.2s;
+    box-shadow: 2px 2px 0px var(--azul-escuro);
 }
 
 .card-link:hover {
     background-color: var(--laranja);
+    color: var(--branco);
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0px var(--azul-escuro);
 }
 
 .carregando {
     text-align: center;
     grid-column: 1 / -1;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    font-weight: bold;
     color: var(--laranja);
+    padding: 3rem;
 }
 
-/* Classe especial para os cards de notícias */
+/* Modificador Especial de Notícias (Tema Verde) */
 .card-verde {
-    border-color: #2E8B57;
-    box-shadow: 4px 4px 0px #b0f2c2;
+    border-color: var(--azul-escuro);
+    box-shadow: 5px 5px 0px #A1E3B9;
+}
+
+.card-verde:hover {
+    box-shadow: 8px 8px 0px var(--verde-forte);
 }
 
 .card-verde .card-categoria {
-    background-color: #b0f2c2;
-    color: #1a5233;
+    background-color: #C8E6C9;
+    color: #1B5E20;
 }
 
 .card-verde .card-link {
-    background-color: #2E8B57;
+    background-color: var(--verde-forte);
 }
 
 .card-verde .card-link:hover {
-    background-color: #1a5233;
+    background-color: #1e5a38;
 }
 
-/* O Botão Vermelho de Busca Global */
+/* Botão Vermelho de Busca Global na Header */
 #btn-buscar-tudo {
-    position: absolute; /* Fixa ele no canto do header */
-    top: 20px;
-    left: 20px;
-    background-color: #DC143C; /* Vermelho escuro */
+    position: absolute;
+    top: 25px;
+    left: 25px;
+    background-color: #DC143C;
     color: var(--branco);
-    border: 2px solid #8B0000;
-    box-shadow: 3px 3px 0px #8B0000;
-    font-size: 1.1rem;
-    padding: 12px 24px;
-    z-index: 10; /* Garante que fique por cima de tudo */
+    border: 3px solid var(--azul-escuro);
+    box-shadow: 3px 3px 0px var(--azul-escuro);
+    font-size: 1.05rem;
+    padding: 10px 20px;
+    z-index: 10;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: all 0.2s;
 }
 
 #btn-buscar-tudo:hover {
-    background-color: #FF0000; /* Vermelho vivo */
-    transform: scale(1.05); /* Dá uma "crescida" ao passar o mouse */
-    border-color: #FF0000;
+    background-color: #FF0000;
+    transform: scale(1.05);
 }
 
 #btn-buscar-tudo:disabled {
-    background-color: #FFA500; /* Fica laranja enquanto carrega */
-    border-color: #CC8400;
-    box-shadow: none;
+    background-color: #FFA500;
+    border-color: var(--azul-escuro);
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
+}
+
+/* Classes para os Cards do MongoDB Inspector */
+.db-inspector-card {
+    background: white;
+    border: 3px solid var(--azul-escuro);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 4px 4px 0 var(--purpura);
+}
+
+.badge-index {
+    display: inline-block;
+    background: #F3E5F5;
+    color: var(--purpura);
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #E1BEE7;
+    margin: 2px;
+    font-family: monospace;
 }
