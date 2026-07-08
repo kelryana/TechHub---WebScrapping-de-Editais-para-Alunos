@@ -3,15 +3,6 @@
 SCRAPER CIEE HÍBRIDO - Combina extração detalhada + robustez
 Autor: TechHub UERN
 Versão: 2.0
-
-Características:
-- ✅ Busca automática por "Mossoró" (sem intervenção)
-- ✅ Modo headless (navegador invisível)
-- ✅ Extração detalhada (código, salário, área, etc.)
-- ✅ Múltiplas estratégias de busca (fallbacks)
-- ✅ Logging estruturado
-- ✅ Orientado a objetos
-- ✅ Salvamento no MongoDB com deduplicação
 """
 
 import logging
@@ -19,7 +10,6 @@ import re
 import time
 import sys
 from datetime import datetime
-from pathlib import Path
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -63,12 +53,6 @@ logger = logging.getLogger(__name__)
 
 class ScraperCIEEHibrido:
     def __init__(self, cidade=CIDADE):
-        """
-        Inicializa o scraper
-        
-        Args:
-            cidade: Cidade a ser buscada (padrão: Mossoró)
-        """
         self.cidade = cidade
         self.driver = None
         self.vagas = []
@@ -85,9 +69,9 @@ class ScraperCIEEHibrido:
             db = client[DB_NAME]
             self.colecao = db[COLLECTION_NAME]
             
-            # Criar índices para performance
+            # Criar índices para performance (SEM unique no link)
             self.colecao.create_index("codigo", unique=True, sparse=True)
-            self.colecao.create_index("link", unique=True, sparse=True)
+            self.colecao.create_index("link")
             self.colecao.create_index("coletado_em")
             self.colecao.create_index("cidade")
             
@@ -103,27 +87,19 @@ class ScraperCIEEHibrido:
         try:
             options = Options()
             
-            # Modo headless (navegador invisível)
             options.add_argument("--headless")
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-gpu")
             options.add_argument("--window-size=1920,1080")
             
-            # User agent realista
             options.set_preference("general.useragent.override",
                 "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0")
-            
-            # Desabilitar imagens para performance
             options.set_preference("permissions.default.image", 2)
-            
-            # Desabilitar JavaScript (se necessário)
-            # options.set_preference("javascript.enabled", False)
             
             service = Service(GeckoDriverManager().install())
             self.driver = webdriver.Firefox(service=service, options=options)
             
-            # Timeouts
             self.driver.set_page_load_timeout(30)
             self.driver.implicitly_wait(10)
             
@@ -135,40 +111,28 @@ class ScraperCIEEHibrido:
             return False
 
     def buscar_cidade(self):
-        """
-        Busca automaticamente pela cidade usando múltiplas estratégias
-        Combina: seu método + meus fallbacks
-        """
+        """Busca automaticamente pela cidade e aguarda carregamento"""
         try:
             logger.info(f"🔍 Buscando por '{self.cidade}'...")
             
-            # ==========================================
-            # ESTRATÉGIA 1: Seletor específico (seu método)
-            # ==========================================
             campo = None
             
-            # Tentar vários seletores (meus fallbacks)
+            # Lista de seletores
             seletores = [
-                # Placeholders
-                "//input[contains(@placeholder, 'cid')]",
+                "//input[@placeholder='Pesquisar cidade ou estado']",
+                "//input[@placeholder='Digite sua cidade']",
+                "//input[contains(@placeholder, 'cidade')]",
                 "//input[contains(@placeholder, 'Cidade')]",
                 "//input[contains(@placeholder, 'local')]",
-                "//input[contains(@placeholder, 'Local')]",
-                # Tipos
+                "//input[contains(@id, 'search')]",
+                "//input[contains(@class, 'search')]",
                 "//input[@type='text']",
                 "//input[@type='search']",
-                # Nomes
-                "//input[@name='search']",
-                "//input[@name='q']",
-                "//input[@name='cidade']",
-                # Classes comuns
-                "//input[contains(@class, 'search')]",
-                "//input[contains(@class, 'busca')]",
             ]
             
             for xpath in seletores:
                 try:
-                    campo = WebDriverWait(self.driver, 3).until(
+                    campo = WebDriverWait(self.driver, 5).until(
                         EC.presence_of_element_located((By.XPATH, xpath))
                     )
                     if campo and campo.is_enabled() and campo.is_displayed():
@@ -177,40 +141,139 @@ class ScraperCIEEHibrido:
                 except:
                     continue
             
-            # ==========================================
-            # ESTRATÉGIA 2: Fallback (qualquer input)
-            # ==========================================
             if not campo:
-                logger.warning("⚠️ Nenhum seletor específico funcionou, tentando fallback...")
+                logger.error("❌ Campo de busca não encontrado")
+                self.driver.save_screenshot(f"ciee_sem_campo_{self.session_id}.png")
+                return False
+            
+            # 🔥 PASSO 1: CLICAR NO CAMPO PARA ATIVAR
+            campo.click()
+            time.sleep(0.5)
+            
+            # 🔥 PASSO 2: DIGITAR A CIDADE
+            campo.clear()
+            campo.send_keys(self.cidade)
+            logger.info(f"✅ Digitado '{self.cidade}'")
+            time.sleep(2)  # Esperar o dropdown de sugestões aparecer
+            
+            # 🔥 PASSO 3: CLICAR NA SUGESTÃO CORRETA
+            sugestao_clicada = False
+            
+            # Estratégia 1: Procurar por role="option" (estrutura mais comum)
+            try:
+                sugestoes = WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_all_elements_located((By.XPATH, 
+                        f"//*[@role='option' and contains(text(), '{self.cidade}')]"))
+                )
+                if sugestoes:
+                    sugestoes[0].click()
+                    sugestao_clicada = True
+                    logger.info(f"✅ Sugestão '{self.cidade}' clicada (role='option')")
+                    time.sleep(2)
+            except:
+                pass
+            
+            # Estratégia 2: Procurar dentro de listbox
+            if not sugestao_clicada:
                 try:
-                    inputs = self.driver.find_elements(By.TAG_NAME, "input")
-                    for inp in inputs:
-                        if (inp.is_enabled() and inp.is_displayed() and 
-                            inp.get_attribute("type") not in ["hidden", "submit", "button"]):
-                            campo = inp
-                            logger.info("✅ Campo encontrado por fallback")
+                    sugestoes = self.driver.find_elements(By.XPATH,
+                        f"//*[@role='listbox']//*[contains(text(), '{self.cidade}')]")
+                    for elem in sugestoes:
+                        if elem.is_displayed() and elem.is_enabled():
+                            elem.click()
+                            sugestao_clicada = True
+                            logger.info(f"✅ Sugestão '{self.cidade}' clicada (listbox)")
+                            time.sleep(2)
                             break
                 except:
                     pass
             
-            if not campo:
-                logger.error("❌ Campo de busca não encontrado")
-                # Salvar screenshot para debug
-                self.driver.save_screenshot(f"ciee_sem_campo_{self.session_id}.png")
-                return False
+            # Estratégia 3: Procurar qualquer elemento visível com a cidade
+            if not sugestao_clicada:
+                try:
+                    elementos = self.driver.find_elements(By.XPATH,
+                        f"//*[contains(text(), '{self.cidade}')]")
+                    for elem in elementos:
+                        # Verificar se não é o campo de busca
+                        if elem.tag_name != "input" and elem.get_attribute("role") != "searchbox":
+                            if elem.is_displayed() and elem.is_enabled():
+                                # Verificar se está perto do campo (sugestão)
+                                parent = elem.find_element(By.XPATH, "./ancestor::*[@role='listbox' or @role='menu']")
+                                if parent:
+                                    elem.click()
+                                    sugestao_clicada = True
+                                    logger.info(f"✅ Sugestão '{self.cidade}' clicada (fallback)")
+                                    time.sleep(2)
+                                    break
+                except:
+                    pass
             
-            # ==========================================
-            # DIGITAR E BUSCAR (seu método)
-            # ==========================================
-            campo.clear()
-            campo.send_keys(self.cidade)
-            time.sleep(0.5)
-            campo.send_keys(Keys.RETURN)
+            # Estratégia 4: Usar setas + Enter (último recurso)
+            if not sugestao_clicada:
+                logger.warning("⚠️ Não foi possível clicar na sugestão, tentando setas + Enter...")
+                try:
+                    campo.send_keys(Keys.DOWN)
+                    time.sleep(0.5)
+                    campo.send_keys(Keys.DOWN)
+                    time.sleep(0.5)
+                    campo.send_keys(Keys.RETURN)
+                    logger.info("✅ Setas + Enter pressionado")
+                    time.sleep(2)
+                except:
+                    pass
             
-            # Aguardar resultados carregarem
-            time.sleep(3)
+            # Se ainda não clicou, tentar Enter
+            if not sugestao_clicada:
+                logger.warning("⚠️ Nenhuma sugestão encontrada, pressionando Enter...")
+                campo.send_keys(Keys.RETURN)
+                time.sleep(2)
             
-            logger.info("✅ Busca realizada com sucesso")
+            # 🔥 PASSO 4: CLICAR NO BOTÃO "Aplicar" (se existir)
+            try:
+                botao_aplicar = self.driver.find_element(By.XPATH, 
+                    "//*[contains(text(), 'Aplicar')]")
+                botao_aplicar.click()
+                logger.info("✅ Botão 'Aplicar' clicado")
+                time.sleep(3)
+            except:
+                logger.info("ℹ️ Botão 'Aplicar' não encontrado")
+            
+            # 🔥 PASSO 5: AGUARDAR AS VAGAS CARREGAREM
+            logger.info("⏳ Aguardando vagas carregarem...")
+            
+            # Esperar a mensagem "Nenhuma vaga" desaparecer
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    EC.invisibility_of_element_located(
+                        (By.XPATH, "//*[contains(text(), 'Nenhuma vaga encontrada')]")
+                    )
+                )
+                logger.info("✅ Mensagem 'Nenhuma vaga' desapareceu")
+            except:
+                logger.debug("ℹ️ Mensagem 'Nenhuma vaga' não encontrada")
+            
+            # Esperar os botões "Ver detalhes" aparecerem
+            try:
+                WebDriverWait(self.driver, 20).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//*[contains(text(), 'Ver detalhes')]")
+                    )
+                )
+                logger.info("✅ Vagas carregaram (botões 'Ver detalhes' encontrados)")
+                time.sleep(2)
+            except:
+                logger.warning("⚠️ Nenhum botão 'Ver detalhes' encontrado")
+            
+            # 🔥 PASSO 6: VERIFICAR SE A BUSCA FUNCIONOU
+            time.sleep(2)
+            pagina_texto = self.driver.page_source.lower()
+            
+            if self.cidade.lower() in pagina_texto:
+                logger.info(f"✅ Busca por '{self.cidade}' confirmada na página")
+            else:
+                logger.warning(f"⚠️ '{self.cidade}' NÃO encontrado na página")
+                self.driver.save_screenshot(f"ciee_busca_falhou_{self.session_id}.png")
+            
             return True
             
         except Exception as e:
@@ -218,50 +281,32 @@ class ScraperCIEEHibrido:
             return False
 
     def extrair_vagas(self):
-        """
-        Extrai vagas usando a lógica específica do seu código
-        (extração detalhada de código, salário, área)
-        """
+        """Extrai vagas filtrando por Mossoró"""
         try:
             logger.info("📊 Extraindo vagas...")
             
-            # ==========================================
-            # SEU MÉTODO: Botões "Ver detalhes"
-            # ==========================================
+            # Aguardar carregamento
+            time.sleep(3)
+            
+            # Buscar botões "Ver detalhes"
             try:
-                botoes = self.driver.find_elements(
-                    By.XPATH, "//*[contains(text(), 'Ver detalhes')]"
+                botoes = WebDriverWait(self.driver, 20).until(
+                    EC.presence_of_all_elements_located((By.XPATH, "//*[contains(text(), 'Ver detalhes')]"))
                 )
                 logger.info(f"📌 Encontrados {len(botoes)} botões 'Ver detalhes'")
             except:
-                logger.warning("⚠️ Não encontrou botões 'Ver detalhes'")
                 botoes = []
             
             if not botoes:
-                # Tentar encontrar cards de outra forma
-                try:
-                    cards = self.driver.find_elements(
-                        By.XPATH, "//*[contains(@class, 'card') or contains(@class, 'vaga')]"
-                    )
-                    logger.info(f"📌 Encontrados {len(cards)} cards alternativos")
-                    
-                    if not cards:
-                        self.driver.save_screenshot(f"ciee_sem_vagas_{self.session_id}.png")
-                        logger.warning("⚠️ Nenhuma vaga encontrada na página")
-                        return False
-                except:
-                    self.driver.save_screenshot(f"ciee_sem_vagas_{self.session_id}.png")
-                    logger.warning("⚠️ Nenhuma vaga encontrada")
-                    return False
+                logger.warning("⚠️ Nenhum botão 'Ver detalhes' encontrado")
+                self.driver.save_screenshot(f"ciee_sem_botoes_{self.session_id}.png")
+                return False
             
             cards_processados = set()
+            vagas_temp = []
             
-            # Processar cada card
             for i, botao in enumerate(botoes):
                 try:
-                    # ==========================================
-                    # SEU MÉTODO: Subir até o card
-                    # ==========================================
                     card = botao.find_element(
                         By.XPATH, "./ancestor::*[contains(., 'Compartilhar')][1]"
                     )
@@ -271,9 +316,6 @@ class ScraperCIEEHibrido:
                         continue
                     cards_processados.add(texto_card)
                     
-                    # ==========================================
-                    # SEU MÉTODO: Processar linhas
-                    # ==========================================
                     linhas = [linha.strip() for linha in texto_card.split('\n') if linha.strip()]
                     
                     # Valores padrão
@@ -283,80 +325,93 @@ class ScraperCIEEHibrido:
                     area = "Área não especificada"
                     codigo_vaga = "N/A"
                     link = "#"
+                    endereco = ""
+                    cidade_encontrada = ""
                     
-                    # Extrair informações linha por linha
+                    # Extrair código e endereço
                     for j, linha in enumerate(linhas):
-                        # Código da vaga
-                        if linha.isdigit() and len(linha) >= 5:
+                        # Capturar código (número com 6+ dígitos)
+                        if linha.isdigit() and len(linha) >= 6:
                             codigo_vaga = linha
-                        # Tipo (Estágio/Aprendiz)
                         elif linha in ["Estágio", "Aprendiz"]:
                             nome = linha
                             if j + 1 < len(linhas):
                                 categoria = linhas[j + 1]
-                        # Salário
                         elif "R$" in linha:
                             salario = linha
-                        # Área/Curso
-                        elif ("00:00" not in linha and self.cidade not in linha and 
-                              "Compartilhar" not in linha and "Ver detalhes" not in linha):
-                            if (linha != nome and linha != categoria and 
-                                len(linha) > 4 and not linha.isdigit()):
-                                area = linha
+                        # Capturar endereço que contém a cidade
+                        elif self.cidade in linha or "RN" in linha:
+                            endereco = linha
+                            cidade_encontrada = self.cidade
+                        elif ("00:00" not in linha and "Compartilhar" not in linha and "Ver detalhes" not in linha and
+                              linha != nome and linha != categoria and len(linha) > 4 and not linha.isdigit()):
+                            area = linha
                     
-                    # Extrair link
-                    try:
-                        link_elem = card.find_element(By.TAG_NAME, "a")
-                        link = link_elem.get_attribute("href")
-                        if link and not link.startswith("http"):
-                            link = f"https://portal.ciee.org.br{link}"
-                    except:
-                        pass
+                    # Construir URL a partir do código
+                    if codigo_vaga != "N/A":
+                        link_detalhe = f"https://portal.ciee.org.br/quero-uma-vaga/?codigoVaga={codigo_vaga}"
+                        
+                        try:
+                            link_elem = card.find_element(By.TAG_NAME, "a")
+                            link = link_elem.get_attribute("href")
+                            if link:
+                                link_detalhe = link
+                        except:
+                            pass
+                        
+                        link = link_detalhe
+                    else:
+                        link = "https://portal.ciee.org.br/"
                     
-                    # ==========================================
-                    # MEU MÉTODO: Mais campos e estruturação
-                    # ==========================================
+                    # Montar vaga
                     vaga = {
-                        # Campos do seu código
                         "codigo": codigo_vaga,
                         "titulo": nome,
                         "categoria": categoria,
                         "salario": salario,
                         "area": area,
+                        "endereco": endereco,
+                        "cidade": cidade_encontrada if cidade_encontrada else self.cidade,
                         "nome_completo": f"[{codigo_vaga}] {nome} - {area} ({salario})",
-                        
-                        # Campos do meu código
-                        "link": link or "https://portal.ciee.org.br/",
+                        "link": link,
                         "fonte": "CIEE",
-                        "cidade": self.cidade,
                         "coletado_em": datetime.now(),
                         "session_id": self.session_id
                     }
                     
-                    # Tentar extrair data de vencimento
+                    # Tentar extrair data
                     data_match = re.search(r"\b(\d{2}/\d{2}/\d{4})\b", texto_card)
                     if data_match:
                         vaga["data_vencimento"] = data_match.group(1)
                     
-                    # Tentar extrair empresa
-                    try:
-                        # Procurar por texto que parece nome de empresa
-                        for linha in linhas:
-                            if any(palavra in linha.lower() for palavra in ["ltda", "s.a", "s/a", "inc.", "corp"]):
-                                vaga["empresa"] = linha
-                                break
-                    except:
-                        pass
+                    vagas_temp.append(vaga)
                     
-                    self.vagas.append(vaga)
-                    logger.info(f"  ✅ Vaga {i+1}: {vaga['titulo'][:30]} - {vaga['area'][:20]}")
+                    # Log com código e endereço
+                    endereco_log = vaga['endereco'][:30] if vaga['endereco'] else 'sem endereço'
+                    logger.info(f"  📝 Vaga {i+1}: [{codigo_vaga}] {vaga['titulo'][:20]} - {endereco_log}")
                     
                 except Exception as e:
                     logger.debug(f"⚠️ Erro no card {i}: {e}")
                     continue
             
-            logger.info(f"📊 Total extraído: {len(self.vagas)} vagas")
-            return len(self.vagas) > 0
+            # Filtrar por endereço que contém a cidade
+            vagas_filtradas = []
+            for vaga in vagas_temp:
+                texto_completo = f"{vaga.get('nome_completo', '')} {vaga.get('area', '')} {vaga.get('endereco', '')}"
+                if self.cidade in texto_completo or "RN" in texto_completo:
+                    vaga["cidade"] = self.cidade
+                    vagas_filtradas.append(vaga)
+                    logger.info(f"  ✅ Vaga de {self.cidade}: [{vaga['codigo']}] {vaga['titulo'][:20]} - {vaga['endereco'][:30]}")
+            
+            self.vagas = vagas_filtradas
+            
+            if not self.vagas:
+                logger.warning(f"⚠️ Nenhuma vaga de {self.cidade} encontrada!")
+                self.driver.save_screenshot(f"ciee_sem_vagas_{self.cidade}_{self.session_id}.png")
+                return False
+            
+            logger.info(f"📊 Total extraído: {len(self.vagas)} vagas de {self.cidade}")
+            return True
             
         except Exception as e:
             logger.error(f"❌ Erro na extração: {e}")
@@ -376,10 +431,8 @@ class ScraperCIEEHibrido:
         
         for vaga in self.vagas:
             try:
-                # Usar código como chave única (seu método)
                 if vaga.get("codigo") and vaga["codigo"] != "N/A":
                     filtro = {"codigo": vaga["codigo"]}
-                # Fallback: usar nome_completo
                 else:
                     filtro = {"nome_completo": vaga["nome_completo"]}
                 
@@ -414,7 +467,6 @@ class ScraperCIEEHibrido:
         logger.info(f"📊 Vagas extraídas: {len(self.vagas)}")
         logger.info("=" * 60)
         
-        # Detalhes das vagas
         for i, vaga in enumerate(self.vagas, 1):
             logger.info(f"{i}. [{vaga.get('codigo', 'N/A')}] {vaga.get('titulo', 'Sem título')}")
             logger.info(f"   📌 Área: {vaga.get('area', 'N/E')}")
@@ -432,34 +484,26 @@ class ScraperCIEEHibrido:
         logger.info(f"🌐 URL: {URL_CIEE}")
         logger.info("=" * 60)
         
-        # Passo 1: Conectar MongoDB
         if not self.conectar_mongodb():
             return False
         
-        # Passo 2: Configurar driver
         if not self.configurar_driver():
             return False
         
         try:
-            # Passo 3: Acessar site
             logger.info("🌐 Acessando CIEE...")
             self.driver.get(URL_CIEE)
             time.sleep(2)
             
-            # Passo 4: Buscar cidade
             if not self.buscar_cidade():
                 logger.error("❌ Falha na busca")
                 return False
             
-            # Passo 5: Extrair vagas
             if not self.extrair_vagas():
                 logger.warning("⚠️ Nenhuma vaga extraída")
                 return False
             
-            # Passo 6: Salvar no MongoDB
             salvos = self.salvar_mongodb()
-            
-            # Passo 7: Relatório
             self.gerar_relatorio()
             
             logger.info("=" * 60)
@@ -472,10 +516,8 @@ class ScraperCIEEHibrido:
             
         except Exception as e:
             logger.error(f"❌ Erro durante execução: {e}")
-            # Salvar screenshot de erro
             try:
                 self.driver.save_screenshot(f"ciee_erro_{self.session_id}.png")
-                logger.info("📸 Screenshot de erro salvo")
             except:
                 pass
             return False
@@ -489,14 +531,13 @@ class ScraperCIEEHibrido:
 # ============================================
 
 def main():
-    """Função principal"""
     import argparse
     
     parser = argparse.ArgumentParser(description='Scraper CIEE Híbrido')
     parser.add_argument('--cidade', default='Mossoró', 
                        help='Cidade para buscar (padrão: Mossoró)')
     parser.add_argument('--debug', action='store_true',
-                       help='Ativa modo debug (mais logs)')
+                       help='Ativa modo debug')
     
     args = parser.parse_args()
     
