@@ -1,0 +1,148 @@
+# ============================================
+# PYTHON
+# ============================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.so
+*.dll
+*.dylib
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# ============================================
+# AMBIENTES VIRTUAIS
+# ============================================
+venv/
+env/
+.venv/
+.env/
+virtualenv/
+ENV/
+env.bak/
+venv.bak/
+
+# ============================================
+# MONGODB
+# ============================================
+*.db
+*.dump
+mongodb-data/
+data/
+dump/
+*.bson
+*.metadata.json
+
+# ============================================
+# LOGS E TEMPORÁRIOS
+# ============================================
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.cache
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================
+# SCRIPTS DE SCRAPING - ARQUIVOS GERADOS
+# ============================================
+*.png
+*.jpg
+*.jpeg
+screenshot-*.png
+ciee_debug.png
+erro.png
+pagina_atual.png
+*.html
+*.xml
+
+# ============================================
+# EDITORES
+# ============================================
+.vscode/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+*.sublime-*
+*.code-workspace
+
+# ============================================
+# ARQUIVOS DO SISTEMA
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+*.orig
+
+# ============================================
+# GIT
+# ============================================
+*.orig
+*.rej
+*.patch
+*.diff
+.gitattributes
+.gitmodules
+
+# ============================================
+# BANCO DE DADOS LOCAL
+# ============================================
+*.sqlite3
+*.sqlite
+*.db3
+
+# ============================================
+# ARQUIVOS DE CONFIGURAÇÃO
+# ============================================
+.env.local
+.env.*.local
+*.env
+config.local.py
+settings.local.py
+secrets.py
+secrets.json
+
+# ============================================
+# DEPENDÊNCIAS E BUILD
+# ============================================
+node_modules/
+bower_components/
+*.min.js
+*.min.css
+package-lock.json
+yarn.lock
+
+# ============================================
+# TESTES E COBERTURA
+# ============================================
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ============================================
+# SCRAPING - DADOS TEMPORÁRIOS
+# ============================================
+cache/
+temp/
+scraped_data/
+output/
+
+# ============================================
+# FRONTEND
+# ============================================
+frontend/*.log
+frontend/*.tmp
