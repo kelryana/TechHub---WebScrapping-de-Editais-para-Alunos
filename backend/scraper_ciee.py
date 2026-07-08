@@ -112,119 +112,126 @@ class ScraperCIEEHibrido:
             return False
 
     def buscar_cidade(self):
-        """Busca pela cidade e CLICA NA SUGESTÃO"""
-        try:
-            logger.info(f"🔍 Buscando por '{self.cidade}'...")
-            
-            # Encontrar o campo de busca
-            campo = None
-            seletores = [
-                "//input[contains(@placeholder, 'cidade')]",
-                "//input[contains(@placeholder, 'Cidade')]",
-                "//input[@type='text']",
-            ]
-            
-            for xpath in seletores:
-                try:
-                    campo = WebDriverWait(self.driver, 5).until(
-                        EC.presence_of_element_located((By.XPATH, xpath))
-                    )
-                    if campo and campo.is_enabled() and campo.is_displayed():
-                        logger.info(f"✅ Campo encontrado: {xpath}")
-                        break
-                except:
-                    continue
-            
-            if not campo:
-                logger.error("❌ Campo de busca não encontrado")
-                return False
-            
-            # 🔥 PASSO 1: CLICAR NO CAMPO (ativa o dropdown)
-            campo.click()
-            time.sleep(0.5)
-            
-            # 🔥 PASSO 2: DIGITAR A CIDADE
-            campo.clear()
-            campo.send_keys(self.cidade)
-            logger.info(f"✅ Digitado '{self.cidade}'")
-            time.sleep(2)  # Esperar o dropdown carregar
-            
-            # 🔥 PASSO 3: CLICAR NA SUGESTÃO (O PASSO MAIS IMPORTANTE!)
+    """Busca pela cidade e CLICA NA SUGESTÃO"""
+    try:
+        logger.info(f"🔍 Buscando por '{self.cidade}'...")
+        
+        # Encontrar o campo de busca
+        campo = None
+        seletores = [
+            "//input[contains(@placeholder, 'cidade')]",
+            "//input[contains(@placeholder, 'Cidade')]",
+            "//input[@type='text']",
+        ]
+        
+        for xpath in seletores:
             try:
-                # Procurar a sugestão que aparece no dropdown
-                sugestao = None
+                campo = WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((By.XPATH, xpath))
+                )
+                if campo and campo.is_enabled() and campo.is_displayed():
+                    logger.info(f"✅ Campo encontrado: {xpath}")
+                    break
+            except:
+                continue
+        
+        if not campo:
+            logger.error("❌ Campo de busca não encontrado")
+            return False
+        
+        # PASSO 1: CLICAR NO CAMPO (ativa o dropdown)
+        campo.click()
+        time.sleep(0.5)
+        
+        # PASSO 2: DIGITAR A CIDADE
+        campo.clear()
+        campo.send_keys(self.cidade)
+        logger.info(f"✅ Digitado '{self.cidade}'")
+        time.sleep(2)
+        
+        # PASSO 3: CLICAR NA SUGESTÃO (CORRIGIDO!)
+        try:
+            sugestao = None
+            
+            # 🔥 CORRIGIDO: Procurar por "MOSSORÓ - RN" (texto EXATO)
+            # O texto da sugestão é "MOSSORÓ - RN" (maiúsculo, com - RN)
+            texto_sugestao = f"{self.cidade.upper()} - RN"
+            logger.info(f"🔍 Procurando sugestão: '{texto_sugestao}'")
+            
+            # Estratégia 1: Procurar por <li> com o texto EXATO
+            sugestoes = self.driver.find_elements(By.XPATH, 
+                f"//li[contains(text(), '{texto_sugestao}')]")
+            for elem in sugestoes:
+                if elem.is_displayed() and elem.is_enabled():
+                    sugestao = elem
+                    logger.info("✅ Sugestão encontrada (li)")
+                    break
+            
+            # Estratégia 2: Procurar por ID específico
+            if not sugestao:
+                try:
+                    sugestao = self.driver.find_element(By.ID, "2408003")
+                    logger.info("✅ Sugestão encontrada por ID")
+                except:
+                    pass
+            
+            # Estratégia 3: Procurar dentro do ComboCidade
+            if not sugestao:
+                try:
+                    sugestao = self.driver.find_element(By.CSS_SELECTOR, "#ComboCidade li")
+                    logger.info("✅ Sugestão encontrada por CSS")
+                except:
+                    pass
+            
+            if sugestao:
+                # Rolar e clicar
+                self.driver.execute_script("arguments[0].scrollIntoView(true);", sugestao)
+                time.sleep(0.5)
+                sugestao.click()
+                logger.info(f"✅ Sugestão '{texto_sugestao}' clicada!")
+                time.sleep(2)
                 
-                # Estratégia 1: Procurar por <li> com o texto
-                sugestoes = self.driver.find_elements(By.XPATH, 
-                    f"//li[contains(text(), '{self.cidade}')]")
-                for elem in sugestoes:
-                    if elem.is_displayed() and elem.is_enabled():
-                        sugestao = elem
-                        logger.info("✅ Sugestão encontrada (li)")
-                        break
-                
-                # Estratégia 2: Procurar por qualquer elemento visível com o texto
-                if not sugestao:
-                    elementos = self.driver.find_elements(By.XPATH,
-                        f"//*[contains(text(), '{self.cidade}')]")
-                    for elem in elementos:
-                        # Verificar se está visível e não é o campo de busca
-                        if (elem.is_displayed() and elem.is_enabled() and 
-                            elem.tag_name != "input"):
-                            sugestao = elem
-                            logger.info("✅ Sugestão encontrada (fallback)")
-                            break
-                
-                if sugestao:
-                    # Rolar até o elemento e clicar
-                    self.driver.execute_script("arguments[0].scrollIntoView(true);", sugestao)
-                    time.sleep(0.5)
-                    sugestao.click()
-                    logger.info(f"✅ Sugestão '{self.cidade}' clicada!")
+                # PASSO 4: CLICAR NO BOTÃO "Aplicar"
+                try:
+                    aplicar = self.driver.find_element(By.XPATH, "//*[contains(text(), 'Aplicar')]")
+                    aplicar.click()
+                    logger.info("✅ Botão 'Aplicar' clicado")
                     time.sleep(2)
+                except:
+                    pass
+                
+                # PASSO 5: VERIFICAR SE O FILTRO FUNCIONOU
+                time.sleep(2)
+                pagina_texto = self.driver.page_source.lower()
+                if self.cidade.lower() in pagina_texto:
+                    logger.info(f"✅ Busca por '{self.cidade}' confirmada!")
                     
-                    # 🔥 PASSO 4: CLICAR NO BOTÃO "Aplicar" (se existir)
+                    # Verificar se há vagas
                     try:
-                        aplicar = self.driver.find_element(By.XPATH, "//*[contains(text(), 'Aplicar')]")
-                        aplicar.click()
-                        logger.info("✅ Botão 'Aplicar' clicado")
-                        time.sleep(2)
+                        botoes = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Ver detalhes')]")
+                        logger.info(f"✅ {len(botoes)} vagas encontradas")
                     except:
                         pass
                     
-                    # 🔥 PASSO 5: VERIFICAR SE O FILTRO FUNCIONOU
-                    time.sleep(2)
-                    pagina_texto = self.driver.page_source.lower()
-                    if self.cidade.lower() in pagina_texto:
-                        logger.info(f"✅ Busca por '{self.cidade}' confirmada!")
-                        
-                        # Verificar se há vagas
-                        try:
-                            botoes = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Ver detalhes')]")
-                            logger.info(f"✅ {len(botoes)} vagas encontradas")
-                        except:
-                            pass
-                        
-                        return True
-                    else:
-                        logger.warning(f"⚠️ '{self.cidade}' NÃO encontrado após clicar na sugestão")
-                        return False
-                else:
-                    logger.warning("⚠️ Nenhuma sugestão encontrada, tentando Enter...")
-                    campo.send_keys(Keys.RETURN)
-                    time.sleep(3)
                     return True
-                    
-            except Exception as e:
-                logger.error(f"❌ Erro ao clicar na sugestão: {e}")
-                # Fallback: Enter
+                else:
+                    logger.warning(f"⚠️ '{self.cidade}' NÃO encontrado após clicar na sugestão")
+                    return False
+            else:
+                logger.warning("⚠️ Nenhuma sugestão encontrada, tentando Enter...")
                 campo.send_keys(Keys.RETURN)
                 time.sleep(3)
                 return True
-                
+                    
         except Exception as e:
-            logger.error(f"❌ Erro na busca: {e}")
-            return False
+            logger.error(f"❌ Erro ao clicar na sugestão: {e}")
+            campo.send_keys(Keys.RETURN)
+            time.sleep(3)
+            return True
+                
+    except Exception as e:
+        logger.error(f"❌ Erro na busca: {e}")
+        return False
 
     def extrair_vagas(self):
         """Extrai vagas filtrando por Mossoró"""
