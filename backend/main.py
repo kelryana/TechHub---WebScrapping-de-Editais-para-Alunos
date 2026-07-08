@@ -202,6 +202,10 @@ def listar_ciee(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     lista_ciee = []
     for vaga in colecao.find().skip(pulo).limit(limite):
         vaga["_id"] = str(vaga["_id"])
+        
+        # 🔧 NORMALIZAÇÃO: Criar campo "nome" esperado pelo frontend
+        vaga["nome"] = vaga.get("nome_completo") or vaga.get("titulo") or "Vaga CIEE"
+        
         if isinstance(vaga.get("data_vencimento"), datetime):
             vaga["data_vencimento_formatada"] = vaga["data_vencimento"].strftime("%d/%m/%Y")
             
