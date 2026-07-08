@@ -33,7 +33,7 @@ def garantir_metadados_fontes():
     links oficiais e metadados de cada portal institucional parceiro.
     """
     colecao = db["fontes_provedores"]
-    
+
     # Dicionário mestre de metadados das instituições de Mossoró e região
     fontes_mestre = [
         {
@@ -73,7 +73,7 @@ def garantir_metadados_fontes():
             "foco_vagas": "Editais Internos Filtrados por Inteligência de Mineração"
         }
     ]
-    
+
     for fonte in fontes_mestre:
         # Usa upsert para garantir que os links oficiais se mantenham atualizados sem duplicar registros
         colecao.update_one({"_id": fonte["_id"]}, {"$set": fonte}, upsert=True)
@@ -89,7 +89,7 @@ def resolver_vinculo_fonte(documento: dict):
     """
     if not documento:
         return documento
-        
+
     fonte_id = documento.get("fonte_id")
     if fonte_id:
         fonte_meta = db["fontes_provedores"].find_one({"_id": fonte_id})
@@ -134,17 +134,17 @@ def raiz():
 def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     colecao = db["vagas_estagio"]
     pulo = (pagina - 1) * limite
-    
+
     lista_vagas = []
     for vaga in colecao.find().skip(pulo).limit(limite):
         vaga["_id"] = str(vaga["_id"])
         if isinstance(vaga.get("data_vencimento"), datetime):
             vaga["data_vencimento_formatada"] = vaga["data_vencimento"].strftime("%d/%m/%Y")
-        
+
         # Injeta os metadados normatizados da PRAE no JSON de saída
         vaga = resolver_vinculo_fonte(vaga)
         lista_vagas.append(vaga)
-        
+
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
@@ -156,16 +156,16 @@ def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
 def listar_bolsas(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     colecao = db["vagas_bolsa"]
     pulo = (pagina - 1) * limite
-    
+
     lista_bolsas = []
     for bolsa in colecao.find().skip(pulo).limit(limite):
         bolsa["_id"] = str(bolsa["_id"])
         if isinstance(bolsa.get("data_vencimento"), datetime):
             bolsa["data_vencimento_formatada"] = bolsa["data_vencimento"].strftime("%d/%m/%Y")
-            
+
         bolsa = resolver_vinculo_fonte(bolsa)
         lista_bolsas.append(bolsa)
-        
+
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
@@ -177,16 +177,16 @@ def listar_bolsas(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
 def listar_ufersa(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     colecao = db["vagas_ufersa"]
     pulo = (pagina - 1) * limite
-    
+
     lista_ufersa = []
     for edital in colecao.find().skip(pulo).limit(limite):
         edital["_id"] = str(edital["_id"])
         if isinstance(edital.get("data_vencimento"), datetime):
             edital["data_vencimento_formatada"] = edital["data_vencimento"].strftime("%d/%m/%Y")
-            
+
         edital = resolver_vinculo_fonte(edital)
         lista_ufersa.append(edital)
-        
+
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
@@ -198,16 +198,20 @@ def listar_ufersa(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
 def listar_ciee(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     colecao = db["vagas_ciee"]
     pulo = (pagina - 1) * limite
-    
+
     lista_ciee = []
     for vaga in colecao.find().skip(pulo).limit(limite):
         vaga["_id"] = str(vaga["_id"])
+        
+        # 🔧 NORMALIZAÇÃO: Criar campo "nome" esperado pelo frontend
+        vaga["nome"] = vaga.get("nome_completo") or vaga.get("titulo") or "Vaga CIEE"
+        
         if isinstance(vaga.get("data_vencimento"), datetime):
             vaga["data_vencimento_formatada"] = vaga["data_vencimento"].strftime("%d/%m/%Y")
-            
+
         vaga = resolver_vinculo_fonte(vaga)
         lista_ciee.append(vaga)
-        
+
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
@@ -223,16 +227,16 @@ def listar_ciee(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
 def listar_portal_uern(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     colecao = db["vagas_portal_uern"]
     pulo = (pagina - 1) * limite
-    
+
     lista_portal = []
     for edital in colecao.find().skip(pulo).limit(limite):
         edital["_id"] = str(edital["_id"])
         if isinstance(edital.get("data_vencimento"), datetime):
             edital["data_vencimento_formatada"] = edital["data_vencimento"].strftime("%d/%m/%Y")
-            
+
         edital = resolver_vinculo_fonte(edital)
         lista_portal.append(edital)
-        
+
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
@@ -245,13 +249,13 @@ def listar_portal_uern(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1
 def listar_noticias(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     colecao_cache = db["controle_cache"]
     ultimo_registro = colecao_cache.find_one({"tipo": "noticias"})
-    
+
     tempo_limite = datetime.now() - timedelta(minutes=10)
-    
+
     if not ultimo_registro or ultimo_registro["data_execucao"] < tempo_limite:
         print("[CACHE] Cache expirado ou inexistente. A acionar robô de notícias...")
         atualizar_noticias_agora()
-        
+
         colecao_cache.update_one(
             {"tipo": "noticias"},
             {"$set": {"data_execucao": datetime.now()}},
@@ -259,15 +263,15 @@ def listar_noticias(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
         )
     else:
         print("[CACHE] Dados recuperados localmente via cache ativo do MongoDB.")
-    
+
     colecao = db["vagas_noticias"]
     pulo = (pagina - 1) * limite
-    
+
     lista_noticias = []
     for noticia in colecao.find().skip(pulo).limit(limite):
         noticia["_id"] = str(noticia["_id"])
         lista_noticias.append(noticia)
-        
+
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
@@ -311,31 +315,31 @@ def obter_estatisticas():
         "noticias": db["vagas_noticias"].count_documents({}),
         "portal_uern": db["vagas_portal_uern"].count_documents({}) # Alimentação do novo contador do card
     }
-    
+
     agora = datetime.now()
     janela_limite = agora + timedelta(days=7)
-    
+
     query_reta_final = {
         "data_vencimento": {
             "$gte": agora,
             "$lte": janela_limite
         }
     }
-    
+
     total_reta_final = (
         db["vagas_estagio"].count_documents(query_reta_final) +
         db["vagas_bolsa"].count_documents(query_reta_final) +
         db["vagas_ufersa"].count_documents(query_reta_final) +
         db["vagas_ciee"].count_documents(query_reta_final)
     )
-    
+
     pipeline_prae = [
         {"$group": {"_id": "$categoria", "total": {"$sum": 1}}},
         {"$sort": {"total": -1}}
     ]
     distribuicao_prae = list(db["vagas_estagio"].aggregate(pipeline_prae))
     formatar = lambda lista: [{"categoria": item["_id"] if item["_id"] else "Geral / Não Especificada", "total": item["total"]} for item in lista]
-    
+
     return {
         "totais": totais,
         "reta_final_urgente": total_reta_final,
@@ -348,7 +352,7 @@ def obter_status_do_banco():
     status_colecoes = []
     # Adicionado vagas_portal_uern para auditoria transparente
     colecoes = ["vagas_estagio", "vagas_bolsa", "vagas_ufersa", "vagas_ciee", "vagas_noticias", "vagas_portal_uern", "historico_varreduras", "fontes_provedores"]
-    
+
     for col_name in colecoes:
         colecao = db[col_name]
         try:
@@ -356,7 +360,7 @@ def obter_status_do_banco():
             indices_nomes = [idx["name"] for idx in indices_brutos]
         except Exception:
             indices_nomes = ["_id_"]
-        
+
         try:
             stats = db.command("collStats", col_name)
             tamanho_kb = round(stats.get("size", 0) / 1024, 2)
@@ -364,7 +368,7 @@ def obter_status_do_banco():
         except Exception:
             tamanho_kb = 0.0
             documentos_qtd = colecao.count_documents({})
-            
+
         has_validator = False
         try:
             col_info = db.command("listCollections", filter={"name": col_name})["cursor"]["firstBatch"]
@@ -372,7 +376,7 @@ def obter_status_do_banco():
                 has_validator = True
         except Exception:
             pass
-            
+
         status_colecoes.append({
             "colecao": col_name,
             "documentos": documentos_qtd,
@@ -380,7 +384,7 @@ def obter_status_do_banco():
             "indices": indices_nomes,
             "has_validator": has_validator
         })
-        
+
     return {
         "banco": "hub_estudantes",
         "host": "MongoDB Local (localhost:27017)",
@@ -394,42 +398,42 @@ def obter_status_do_banco():
 @app.get("/api/buscar-tudo")
 def acionar_todos_os_robos():
     print("\n[SISTEMA] Iniciando a Varredura Global de Infraestrutura...")
-    
+
     inicio_varredura = datetime.now()
-    
+
     db["vagas_estagio"].delete_many({})
     db["vagas_bolsa"].delete_many({})
     db["vagas_ufersa"].delete_many({})
     db["vagas_ciee"].delete_many({})
-    
+
     python_exe = sys.executable
     status_final = "Sucesso"
     detalhe_erro = None
-    
+
     try:
         print("-> A raspar PRAE...")
         subprocess.run([python_exe, "scraper_prae.py"])
-        
+
         print("-> A raspar PROEX...")
         subprocess.run([python_exe, "scraper_proex.py"])
-        
+
         print("-> A raspar UFERSA...")
         subprocess.run([python_exe, "scraper_ufersa.py"])
-        
+
         print("-> A raspar CIEE...")
         subprocess.run([python_exe, "scraper_ciee.py"])
-        
+
         print("-> A raspar Notícias...")
         atualizar_noticias_agora()
-        
+
         # NOTA TÉCNICA: A coleção 'vagas_portal_uern' é alimentada de forma assíncrona 
         # via script de sementes (popular_portal.py) para contornar bloqueios do Cloudflare.
-        
+
         # ------------------------------------------------------------
         # PIPELINE DE HIGIENIZAÇÃO E CRUZA DE REFERÊNCIAS NOSQL
         # ------------------------------------------------------------
         print("[MIGRAÇÃO] Rodando Normalização Heurística de Dados...")
-        
+
         # Mapeia qual coleção pertence a qual chave identificadora de fonte
         mapeamento_fontes = {
             "vagas_estagio": "prae_uern",
@@ -438,27 +442,27 @@ def acionar_todos_os_robos():
             "vagas_ciee": "ciee_agente",
             "vagas_portal_uern": "portal_uern_oficial"
         }
-        
+
         for col_name, id_fonte in mapeamento_fontes.items():
             cursor = db[col_name].find()
             for doc in cursor:
                 texto_alvo = f"{doc.get('nome', '')} {doc.get('categoria', '')}"
                 data_detectada = extrair_e_converter_data(texto_alvo)
-                
+
                 # Monta a carga de atualização injetando a chave estrangeira (Referência)
                 payload_atualizacao = {"fonte_id": id_fonte}
                 if data_detectada:
                     payload_atualizacao["data_vencimento"] = data_detectada
-                    
+
                 db[col_name].update_one(
                     {"_id": doc["_id"]},
                     {"$set": payload_atualizacao}
                 )
-                    
+
     except Exception as e:
         status_final = "Erro"
         detalhe_erro = str(e)
-    
+
     fim_varredura = datetime.now()
     log_auditoria = {
         "data_execucao": inicio_varredura,
@@ -473,10 +477,8 @@ def acionar_todos_os_robos():
             "portal_uern": db["vagas_portal_uern"].count_documents({})
         }
     }
-    
+
     db["historico_varreduras"].insert_one(log_auditoria)
-    
+
     if status_final == "Erro":
         return {"erro": detalhe_erro}
-        
-    return {"mensagem": "Varredura global concluída e normatizada com sucesso!"}
