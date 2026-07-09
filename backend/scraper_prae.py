@@ -1,151 +1,215 @@
-##backend/scraper_prae.py
 import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 import re
 from datetime import datetime
+from pdf_utils import extrair_data_vencimento_hibrido, verificar_status
+
+MONGODB_URI = "mongodb://localhost:27017/"
+NOME_BANCO = "hub_estudantes"
+NOME_COLECAO = "vagas_estagio"
+TIMEOUT_PDF = 15  # segundos
 
 def conectar_banco():
-    client = MongoClient("mongodb://localhost:27017/")
-    db = client["hub_estudantes"]
-    return db["vagas_estagio"]
+    """Conecta ao MongoDB e retorna a coleção de estágios"""
+    try:
+        client = MongoClient(MONGODB_URI)
+        db = client[NOME_BANCO]
+        return db[NOME_COLECAO]
+    except Exception as e:
+        print(f"❌ Erro ao conectar ao MongoDB: {e}")
+        raise
 
-def extrair_data_vencimento(texto):
-    """
-    Extrai data de vencimento do texto usando regex.
-    Procura padrões como: DD/MM/AAAA
-    Retorna objeto datetime ou None se não encontrar.
-    """
+def limpar_texto(texto: str) -> str:
+    """Remove textos indesejados e limpa o nome do edital"""
     if not texto:
+        return ""
+    
+    # Remove textos comuns
+    remover = ["(Clique Aqui)", "(Clique aqui)", "(clique aqui)", "Clique Aqui", "Clique aqui"]
+    for item in remover:
+        texto = texto.replace(item, "")
+    
+    # Remove espaços extras
+    texto = " ".join(texto.split())
+    
+    # Remove traço no final
+    if texto.endswith("-"):
+        texto = texto[:-1].strip()
+    
+    return texto
+
+def extrair_dados_edital(li, categoria_texto):
+    """
+    Extrai os dados de um item de lista de edital
+    
+    Returns:
+        dict com nome, link, data_vencimento, status ou None se inválido
+    """
+    tag_link = li.find('a')
+    if not tag_link:
         return None
-
-    # Padrão 1: DD/MM/AAAA
-    padrao1 = r"\b(\d{1,2})/(\d{1,2})/(\d{4})\b"
-    resultado = re.search(padrao1, texto)
-    if resultado:
-        dia, mes, ano = resultado.groups()
-        try:
-            return datetime(int(ano), int(mes), int(dia))
-        except ValueError:
-            pass
-
-    # Padrão 2: "até DD/MM/AAAA" ou "vencimento: DD/MM/AAAA"
-    padrao2 = r"(?:até|vencimento|prazo).*?(\d{1,2})/(\d{1,2})/(\d{4})"
-    resultado = re.search(padrao2, texto, re.IGNORECASE)
-    if resultado:
-        dia, mes, ano = resultado.groups()
-        try:
-            return datetime(int(ano), int(mes), int(dia))
-        except ValueError:
-            pass
-
-    return None
+    
+    texto_bruto = li.get_text(strip=True)
+    link_pdf = tag_link.get('href')
+    
+    if not texto_bruto.lower().startswith("edital"):
+        return None
+    
+    # ==========================================
+    # FILTRO: Link deve ser válido
+    # ==========================================
+    if not link_pdf or link_pdf == "#":
+        return None
+    
+    # Completar URL se for relativa
+    if not link_pdf.startswith("http"):
+        link_pdf = "https://portal.uern.br" + link_pdf
+  
+    nome_edital = limpar_texto(texto_bruto)
+    
+    # Usar a função híbrida do pdf_utils
+    data_vencimento = extrair_data_vencimento_hibrido(
+        texto_html=texto_bruto,
+        url_pdf=link_pdf
+    )
+    
+    # Verificar status (vigente/vencido)
+    status_vigencia = verificar_status(data_vencimento)
+    
+    # Log do resultado
+    if data_vencimento:
+        print(f"   📅 {nome_edital[:50]}... -> {data_vencimento} ({status_vigencia})")
+    else:
+        print(f"   ❓ {nome_edital[:50]}... -> SEM DATA ({status_vigencia})")
+    
+    return {
+        "nome": nome_edital,
+        "link": link_pdf,
+        "categoria": categoria_texto,
+        "fonte": "PRAE/UERN",
+        "data_vencimento": data_vencimento,  # String YYYY-MM-DD
+        "status_vigencia": status_vigencia   # "vigente" ou "vencido"
+    }
 
 def raspar_pagina_prae(url, colecao_bd):
-    print(f"Acessando a página específica: {url}")
+    """
+    Raspa uma página da PRAE em busca de editais
+    
+    Args:
+        url: URL da página
+        colecao_bd: Coleção do MongoDB onde salvar
+    """
+    print(f"\n🔍 Acessando: {url}")
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
-
-    resposta = requests.get(url, headers=headers)
-
-    if resposta.status_code != 200:
-        print(f"Erro ao acessar a página. Código: {resposta.status_code}")
+    
+    try:
+        resposta = requests.get(url, headers=headers, timeout=30)
+        resposta.raise_for_status()
+    except requests.exceptions.Timeout:
+        print(f"❌ Timeout ao acessar {url}")
         return
-
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Erro ao acessar {url}: {e}")
+        return
+    
     soup = BeautifulSoup(resposta.text, 'html.parser')
-
-    # Pega todas as listas da página
-    listas_editais = soup.find_all('ul')
-    editais_inseridos = 0
-    editais_vencidos = 0
-
-    for ul in listas_editais:
-        # Se a lista estiver dentro de um menu de navegação, rodapé ou barra lateral, ignora totalmente
-        if ul.find_parent(['nav', 'aside', 'footer', 'header']):
+    
+    # Encontrar todas as listas não-navegacionais
+    listas_editais = []
+    for ul in soup.find_all('ul'):
+        # Ignorar listas em menus/navegação
+        if ul.find_parent(['nav', 'aside', 'footer', 'header', 'menu']):
             continue
-
-        # Tenta achar o título da categoria (geralmente o parágrafo ou título acima da lista)
+        listas_editais.append(ul)
+    
+    if not listas_editais:
+        print("⚠️ Nenhuma lista encontrada na página")
+        return
+    
+    # Estatísticas
+    total_editais = 0
+    editais_vigentes = 0
+    editais_vencidos = 0
+    editais_sem_data = 0
+    
+    # Processar cada lista
+    for ul in listas_editais:
+        # Tentar identificar a categoria
         elemento_categoria = ul.find_previous_sibling(['p', 'h2', 'h3', 'h4', 'strong'])
         categoria_texto = "Categoria Geral"
-
+        
         if elemento_categoria:
             categoria_texto = elemento_categoria.get_text(strip=True)
-
-        for li in ul.find_all('li'):
-            tag_link = li.find('a')
-            if not tag_link:
+            # Limitar tamanho da categoria
+            if len(categoria_texto) > 50:
+                categoria_texto = categoria_texto[:47] + "..."
+        
+        print(f"\n📂 Categoria: {categoria_texto}")
+        
+        # Processar cada item da lista
+        for li in ul.find_all('li', recursive=False):
+            dados = extrair_dados_edital(li, categoria_texto)
+            if not dados:
                 continue
-
-            texto_bruto = li.get_text(strip=True)
-            link_pdf = tag_link.get('href')
-
-            # ==========================================
-            # FILTRO CEGO E RIGOROSO
-            # Só aceita se o texto começar com a palavra "Edital"
-            # O .lower() garante que vai funcionar se estiver escrito "EDITAL", "Edital", "edital"
-            # ==========================================
-            if not texto_bruto.lower().startswith("edital"):
-                continue
-
-            if link_pdf == "#" or not link_pdf.startswith("http"):
-                continue
-            # ==========================================
-
-            # Limpeza do texto para ficar bonito no banco
-            nome_edital = texto_bruto.replace("(Clique Aqui)", "").replace("(Clique aqui)", "").strip()
-            if nome_edital.endswith("-"):
-                nome_edital = nome_edital[:-1].strip()
-
-            # ==========================================
-            # NOVO: Extrair data de vencimento do texto
-            # ==========================================
-            data_vencimento = extrair_data_vencimento(texto_bruto)
             
-            # 🔥 CORRIGIDO: Definir hoje ANTES de usar
-            hoje = datetime.now()
+            # Salvar no MongoDB (upsert)
+            try:
+                colecao_bd.update_one(
+                    {"link": dados["link"]},
+                    {"$set": dados},
+                    upsert=True
+                )
+                total_editais += 1
+                
+                # Atualizar estatísticas
+                if dados["status_vigencia"] == "vigente":
+                    editais_vigentes += 1
+                elif dados["status_vigencia"] == "vencido":
+                    editais_vencidos += 1
+                else:
+                    editais_sem_data += 1
+                    
+            except Exception as e:
+                print(f"❌ Erro ao salvar edital: {e}")
+    
+    print(f"\n{'='*50}")
+    print(f"📊 RESUMO PRAE")
+    print(f"{'='*50}")
+    print(f"  ✅ VIGENTES:   {editais_vigentes}")
+    print(f"  ⚠️  VENCIDOS:    {editais_vencidos}")
+    print(f"  ❓ SEM DATA:   {editais_sem_data}")
+    print(f"  📊 TOTAL:      {total_editais}")
+    print(f"{'='*50}\n")
 
-            # Determinar status de vigência
-            if data_vencimento and data_vencimento < hoje:
-                status_vigencia = "vencido"
-                editais_vencidos += 1
-                print(f"   ⚠️  VENCIDO: {nome_edital[:60]}... (venceu em {data_vencimento.strftime('%d/%m/%Y')})")
-            elif data_vencimento:
-                status_vigencia = "vigente"
-                print(f"   ✅ VIGENTE: {nome_edital[:60]}... (vence em {data_vencimento.strftime('%d/%m/%Y')})")
-            else:
-                status_vigencia = "vigente"  # Sem data, considerar vigente
-
-            documento = {
-                "nome": nome_edital,
-                "link": link_pdf,
-                "categoria": categoria_texto,
-                "fonte": "PRAE/UERN",
-                "data_vencimento": data_vencimento,
-                "status_vigencia": status_vigencia
-            }
-
-            colecao_bd.update_one(
-                {"link": link_pdf},
-                {"$set": documento},
-                upsert=True
-            )
-            editais_inseridos += 1
-
-    print(f"\nResumo PRAE:")
-    print(f"  ✅ {editais_inseridos - editais_vencidos} editais VIGENTES")
-    print(f"  ⚠️  {editais_vencidos} editais VENCIDOS")
-    print(f"  📊 Total: {editais_inseridos} editais processados.\n")
+def executar_scraper_prae(paginas=None):
+    """
+    Executa o scraper da PRAE
+    
+    Args:
+        paginas: Lista de URLs para raspar (usar padrão se None)
+    """
+    print("🚀 Iniciando Scraper PRAE")
+    print("="*50)
+    
+    # Conectar ao banco
+    colecao = conectar_banco()
+    
+    # Páginas a serem raspadas
+    if paginas is None:
+        paginas = [
+            "https://portal.uern.br/prae/2026-2/"
+            # Adicione mais URLs aqui se necessário
+        ]
+    
+    # Raspar cada página
+    for pagina in paginas:
+        raspar_pagina_prae(pagina, colecao)
+    
+    print("✅ Scraper PRAE finalizado!")
 
 if __name__ == "__main__":
-    colecao = conectar_banco()
-
-    # A lista onde você coloca as páginas específicas que quer ler
-    paginas_alvo = [
-        "https://portal.uern.br/prae/2026-2/"
-    ]
-
-    for pagina in paginas_alvo:
-        raspar_pagina_prae(pagina, colecao)
-
-    print("Finalizado! Verifique o MongoDB Compass.")
+    executar_scraper_prae()
