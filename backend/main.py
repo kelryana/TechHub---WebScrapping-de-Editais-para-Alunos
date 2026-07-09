@@ -1,3 +1,4 @@
+##backend/main.py
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
@@ -131,12 +132,17 @@ def raiz():
 # ====================================================================
 
 @app.get("/api/estagios")
-def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
+def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = Query(False)):
     colecao = db["vagas_estagio"]
     pulo = (pagina - 1) * limite
 
+    # Filtro para mostrar apenas editais vigentes (não vencidos)
+    filtro = {}
+    if apenas_vigentes:
+        filtro["status_vigencia"] = {"$ne": "vencido"}
+
     lista_vagas = []
-    for vaga in colecao.find().skip(pulo).limit(limite):
+    for vaga in colecao.find(filtro).skip(pulo).limit(limite):
         vaga["_id"] = str(vaga["_id"])
         if isinstance(vaga.get("data_vencimento"), datetime):
             vaga["data_vencimento_formatada"] = vaga["data_vencimento"].strftime("%d/%m/%Y")
@@ -148,17 +154,22 @@ def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
-        "total_documentos": colecao.count_documents({}),
+        "total_documentos": colecao.count_documents(filtro),
         "dados": lista_vagas
     }
 
 @app.get("/api/bolsas")
-def listar_bolsas(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
+def listar_bolsas(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = Query(False)):
     colecao = db["vagas_bolsa"]
     pulo = (pagina - 1) * limite
 
+    # Filtro para mostrar apenas editais vigentes (não vencidos)
+    filtro = {}
+    if apenas_vigentes:
+        filtro["status_vigencia"] = {"$ne": "vencido"}
+
     lista_bolsas = []
-    for bolsa in colecao.find().skip(pulo).limit(limite):
+    for bolsa in colecao.find(filtro).skip(pulo).limit(limite):
         bolsa["_id"] = str(bolsa["_id"])
         if isinstance(bolsa.get("data_vencimento"), datetime):
             bolsa["data_vencimento_formatada"] = bolsa["data_vencimento"].strftime("%d/%m/%Y")
@@ -169,17 +180,22 @@ def listar_bolsas(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
-        "total_documentos": colecao.count_documents({}),
+        "total_documentos": colecao.count_documents(filtro),
         "dados": lista_bolsas
     }
 
 @app.get("/api/ufersa")
-def listar_ufersa(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
+def listar_ufersa(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = Query(False)):
     colecao = db["vagas_ufersa"]
     pulo = (pagina - 1) * limite
 
+    # Filtro para mostrar apenas editais vigentes (não vencidos)
+    filtro = {}
+    if apenas_vigentes:
+        filtro["status_vigencia"] = {"$ne": "vencido"}
+
     lista_ufersa = []
-    for edital in colecao.find().skip(pulo).limit(limite):
+    for edital in colecao.find(filtro).skip(pulo).limit(limite):
         edital["_id"] = str(edital["_id"])
         if isinstance(edital.get("data_vencimento"), datetime):
             edital["data_vencimento_formatada"] = edital["data_vencimento"].strftime("%d/%m/%Y")
@@ -190,7 +206,7 @@ def listar_ufersa(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
-        "total_documentos": colecao.count_documents({}),
+        "total_documentos": colecao.count_documents(filtro),
         "dados": lista_ufersa
     }
 
