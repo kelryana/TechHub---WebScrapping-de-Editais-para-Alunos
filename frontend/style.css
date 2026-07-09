@@ -1,9 +1,7 @@
-/* ====================================================================
-   ESTILO ATUALIZADO: RETORNO AO DESIGN ORIGINAL REFINADO
-   ==================================================================== */
+/*frontend/style.*/
 
 :root {
-    /* Resgatando a sua paleta forte e contrastante */
+
     --azul-escuro: #09184D;
     --azul-claro: #79D3E6;
     --laranja: #F27A18;
@@ -204,6 +202,7 @@ main {
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    line-clamp: 3;  /* ← ADICIONAR ESTA LINHA */
     overflow: hidden;
 }
 
@@ -316,10 +315,6 @@ main {
     font-family: monospace;
 }
 
-/* ====================================================================
-   DASHBOARD REFINADO (Mantendo a identidade visual forte e robusta)
-   ==================================================================== */
-
 .dashboard-container {
     background: #ffffff;
     border: 3px solid var(--azul-escuro);
@@ -329,6 +324,36 @@ main {
     margin: 0 auto;
     max-width: 900px;
     animation: surgimento 0.4s ease-out;
+}
+
+.badge-vigente {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #2E8B57;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 2px solid var(--azul-escuro);
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0 var(--azul-escuro);
+}
+
+.badge-vencido {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #DC3545;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 2px solid var(--azul-escuro);
+    text-transform: uppercase;
+    box-shadow: 2px 2px 0 var(--azul-escuro);
 }
 
 .dashboard-header {

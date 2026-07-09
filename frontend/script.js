@@ -1,3 +1,4 @@
+//frontend/script.js
 // URL base da sua API FastAPI
 const API_URL = "http://localhost:8000/api";
 
@@ -12,10 +13,16 @@ window.onload = () => {
 
 // --- FUNÇÕES DE BUSCA E NAVEGAÇÃO ---
 
+// Função auxiliar para obter o parâmetro de vigência
+function getParametroVigencia() {
+    const checkbox = document.getElementById('filtroVigentes');
+    return checkbox && checkbox.checked ? '?apenas_vigentes=true' : '';
+}
+
 async function carregarDados(tipo, novaPagina = 1) {
     tipoAtual = tipo;
     paginaAtual = novaPagina;
-    
+
     const container = document.getElementById('container-vagas');
     container.style.display = 'grid'; // Garante o layout grid
     container.innerHTML = '<p class="carregando">Buscando dados no banco...</p>';
@@ -24,21 +31,23 @@ async function carregarDados(tipo, novaPagina = 1) {
     document.querySelectorAll('.controles button').forEach(botao => {
         botao.classList.remove('ativo');
     });
-    
+
     const botaoAtivo = document.getElementById(`btn-${tipo}`);
     if(botaoAtivo) botaoAtivo.classList.add('ativo');
 
     try {
         // Envia os parâmetros de paginação via URL Query String para o MongoDB
-        const resposta = await fetch(`${API_URL}/${tipo}?pagina=${paginaAtual}&limite=6`);
+        const parametroVigencia = getParametroVigencia();
+        const url = `${API_URL}/${tipo}?pagina=${paginaAtual}&limite=6${parametroVigencia}`;
+        const resposta = await fetch(url);
         const objetoPaginado = await resposta.json();
-        
+
         // Envia apenas o array '.dados' para renderizar os cards
         renderizarCards(objetoPaginado.dados);
-        
+
         // Injeta os controles visuais de paginação logo após os cards
         renderizarControlesPaginacao(objetoPaginado.pagina_atual, objetoPaginado.total_documentos, objetoPaginado.limite_por_pagina);
-        
+
     } catch (erro) {
         console.error("Erro ao buscar dados paginados:", erro);
         container.innerHTML = '<p class="carregando" style="color: red;">Erro ao conectar com a API. O FastAPI está rodando?</p>';
@@ -49,14 +58,14 @@ async function carregarDados(tipo, novaPagina = 1) {
 function renderizarControlesPaginacao(atual, total, limite) {
     const antigo = document.getElementById('bloco-paginacao');
     if(antigo) antigo.remove();
-    
+
     const totalPaginas = Math.ceil(total / limite);
-    if(totalPaginas <= 1) return; 
+    if(totalPaginas <= 1) return;
 
     const mainContainer = document.querySelector('main');
     const blocoPaginacao = document.createElement('div');
     blocoPaginacao.id = 'bloco-paginacao';
-    
+
     blocoPaginacao.style.cssText = `
         display: flex;
         justify-content: center;
@@ -66,17 +75,17 @@ function renderizarControlesPaginacao(atual, total, limite) {
     `;
 
     blocoPaginacao.innerHTML = `
-        <button ${atual === 1 ? 'disabled' : ''} onclick="carregarDados('${tipoAtual}', ${atual - 1})" 
+        <button ${atual === 1 ? 'disabled' : ''} onclick="carregarDados('${tipoAtual}', ${atual - 1})"
             style="background: #fff; color: var(--azul-escuro); border: 3px solid var(--azul-escuro); padding: 8px 16px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 3px 3px 0 var(--azul-escuro); opacity: ${atual === 1 ? '0.5' : '1'}">
             ◀ Anterior
         </button>
         <span style="font-weight: bold; color: var(--azul-escuro);">Página ${atual} de ${totalPaginas}</span>
-        <button ${atual >= totalPaginas ? 'disabled' : ''} onclick="carregarDados('${tipoAtual}', ${atual + 1})" 
+        <button ${atual >= totalPaginas ? 'disabled' : ''} onclick="carregarDados('${tipoAtual}', ${atual + 1})"
             style="background: #fff; color: var(--azul-escuro); border: 3px solid var(--azul-escuro); padding: 8px 16px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 3px 3px 0 var(--azul-escuro); opacity: ${atual >= totalPaginas ? '0.5' : '1'}">
             Próximo ▶
         </button>
     `;
-    
+
     mainContainer.appendChild(blocoPaginacao);
 }
 
@@ -87,12 +96,14 @@ async function realizarPesquisa() {
 
     const container = document.getElementById('container-vagas');
     container.innerHTML = '<p class="carregando">Consultando índices no MongoDB...</p>';
-    
+
     const antigo = document.getElementById('bloco-paginacao');
     if(antigo) antigo.remove();
 
     try {
-        const resposta = await fetch(`${API_URL}/pesquisar?termo=${termo}`);
+        const parametroVigencia = getParametroVigencia();
+        const url = `${API_URL}/pesquisar?termo=${termo}${parametroVigencia}`;
+        const resposta = await fetch(url);
         const dados = await resposta.json();
         renderizarCards(dados);
         document.querySelectorAll('.controles button').forEach(b => b.classList.remove('ativo'));
@@ -101,12 +112,18 @@ async function realizarPesquisa() {
     }
 }
 
+// Função para toggle do filtro de vigentes
+function toggleFiltroVigentes() {
+    // Recarrega os dados com o novo filtro
+    carregarDados(tipoAtual, 1);
+}
+
 async function carregarEstatisticas() {
     const antigo = document.getElementById('bloco-paginacao');
     if(antigo) antigo.remove();
 
     const container = document.getElementById('container-vagas');
-    container.style.display = 'block'; 
+    container.style.display = 'block';
     container.innerHTML = '<p class="carregando">Gerando painel visual...</p>';
 
     document.querySelectorAll('.controles button').forEach(botao => {
@@ -166,7 +183,7 @@ async function carregarEstatisticas() {
                 <div class="dash-secao-grafico">
                     <h3 class="grafico-titulo">📂 Distribuição de Editais de Vagas por Setor</h3>
                     <span class="grafico-metadado">Métrica baseada na agregação de categorias transacionais ativas</span>
-                    
+
                     <div class="grafico-barras-container">
         `;
 
@@ -177,7 +194,7 @@ async function carregarEstatisticas() {
 
             dados.prae_categorias.forEach(item => {
                 const percentual = maxVal > 0 ? (item.total / maxVal) * 100 : 0;
-                
+
                 html += `
                     <div class="grafico-item-barra">
                         <div class="barra-legenda">
@@ -197,21 +214,19 @@ async function carregarEstatisticas() {
                 </div>
             </div>
         `;
-        
+
         container.innerHTML = html;
-        
+
     } catch (erro) {
         console.error("Erro no Dashboard:", erro);
         container.innerHTML = '<p class="carregando" style="color: red;">Falha ao gerar o painel visual das estatísticas.</p>';
     }
 }
 
-// ====================================================================
-// MODIFICAÇÃO 2: RENDERS COM BADGES DE ALERTA E HIGIENIZAÇÃO DE FONTES
-// ====================================================================
+
 function renderizarCards(listaDeVagas) {
     const container = document.getElementById('container-vagas');
-    container.innerHTML = ''; 
+    container.innerHTML = '';
 
     if (!listaDeVagas || listaDeVagas.length === 0) {
         container.innerHTML = '<p class="carregando">Nenhuma oportunidade encontrada no banco.</p>';
@@ -220,7 +235,15 @@ function renderizarCards(listaDeVagas) {
 
     listaDeVagas.forEach(vaga => {
         const temaVerde = vaga.categoria === "Notícia Tech" ? "card-verde" : "";
-        
+
+        // Badge de vigência (Vigente/Vencido)
+        let badgeVigenciaHTML = "";
+        if (vaga.status_vigencia === "vigente") {
+            badgeVigenciaHTML = `<span class="badge-vigente">VIGENTE</span>`;
+        } else if (vaga.status_vigencia === "vencido") {
+            badgeVigenciaHTML = `<span class="badge-vencido">VENCIDO</span>`;
+        }
+
         // Inserção da Badge Dinâmica Interativa se houver prazo detectado por Regex no banco
         let badgeDataHTML = "";
         if (vaga.data_vencimento_formatada) {
@@ -235,7 +258,7 @@ function renderizarCards(listaDeVagas) {
         let linkFonteHTML = `Fonte: ${vaga.fonte || 'Não Especificada'}`;
         if (vaga.meta_fonte) {
             linkFonteHTML = `
-                <a href="${vaga.meta_fonte.url_oficial}" target="_blank" 
+                <a href="${vaga.meta_fonte.url_oficial}" target="_blank"
                    title="Portal Mestre: ${vaga.meta_fonte.nome_oficial} &#10;Ciclo do Robô: ${vaga.meta_fonte.frequencia}"
                    style="color: var(--azul-escuro); text-decoration: underline; font-weight: bold; cursor: pointer;">
                     📍 ${vaga.meta_fonte.nome_oficial.split(" - ")[0]} ℹ️
@@ -244,7 +267,8 @@ function renderizarCards(listaDeVagas) {
         }
 
         const cardHTML = `
-            <div class="card ${temaVerde}">
+            <div class="card ${temaVerde}" style="position: relative;">
+                ${badgeVigenciaHTML}
                 <div>
                     <div style="display: flex; flex-direction: column; align-items: flex-start;">
                         <span class="card-categoria">${vaga.categoria || 'Geral'}</span>
@@ -260,9 +284,6 @@ function renderizarCards(listaDeVagas) {
     });
 }
 
-// ====================================================================
-// MODIFICAÇÃO 3: MONITORES DE SUPORTE OPERACIONAL (STATUS DA INFRAESTRUTURA)
-// ====================================================================
 async function carregarInspector() {
     const antigo = document.getElementById('bloco-paginacao');
     if(antigo) antigo.remove();
@@ -292,8 +313,8 @@ async function carregarInspector() {
         if (info && info.colecoes) {
             info.colecoes.forEach(col => {
                 const indexBadges = col.indices.map(idx => `<span class="badge-index">${idx}</span>`).join(' ');
-                const validadorStatus = col.has_validator 
-                    ? `<span style="background: #E8F5E9; color: #1B5E20; font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; border: 2px solid var(--azul-escuro); font-weight: bold; margin-left: auto; box-shadow: 2px 2px 0px var(--azul-escuro);">VALIDADOR ATIVO</span>` 
+                const validadorStatus = col.has_validator
+                    ? `<span style="background: #E8F5E9; color: #1B5E20; font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; border: 2px solid var(--azul-escuro); font-weight: bold; margin-left: auto; box-shadow: 2px 2px 0px var(--azul-escuro);">VALIDADOR ATIVO</span>`
                     : "";
 
                 html += `
@@ -304,7 +325,7 @@ async function carregarInspector() {
                         </div>
                         <p style="font-size: 0.9rem; margin-bottom: 6px; color: #333;">Documentos Ativos: <strong>${col.documentos}</strong></p>
                         <p style="font-size: 0.9rem; margin-bottom: 12px; color: #333;">Alocação Física: <strong>${col.tamanho_kb} KB</strong></p>
-                        
+
                         <div style="border-top: 1.5px dashed var(--azul-escuro); padding-top: 8px; margin-top: 10px;">
                             <p style="font-size: 0.75rem; font-weight: 800; color: var(--azul-escuro); margin-bottom: 6px; letter-spacing: 0.5px;">ESTRUTURAS DE ÍNDICES:</p>
                             <div style="display: flex; flex-wrap: wrap; gap: 4px;">${indexBadges}</div>
@@ -318,7 +339,7 @@ async function carregarInspector() {
                 </div>
             </div>
         `;
-        
+
         container.innerHTML = html;
     } catch (erro) {
         console.error("Erro ao inspecionar banco:", erro);
@@ -330,20 +351,20 @@ async function carregarInspector() {
 async function acionarTodosOsRobos() {
     const container = document.getElementById('container-vagas');
     const btn = document.getElementById('btn-buscar-tudo');
-    
+
     const antigo = document.getElementById('bloco-paginacao');
     if(antigo) antigo.remove();
 
     btn.innerText = "⏳ Raspando...";
     btn.disabled = true;
-    
+
     container.innerHTML = `
         <div style="text-align: center; padding: 40px;">
             <h2 style="color: #DC143C; margin-bottom: 15px; font-size: 1.8rem;">Iniciando Protocolo de Varredura...</h2>
             <p style="font-size: 1.1rem; color: var(--azul-escuro);">Os scrapers assíncronos foram disparados. Limpando instâncias antigas e populando coleções...</p>
         </div>
     `;
-    
+
     try {
         await fetch(`${API_URL}/buscar-tudo`);
         btn.innerText = "Buscar 🤖";
