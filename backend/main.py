@@ -24,10 +24,6 @@ app.add_middleware(
 client = MongoClient("mongodb://localhost:27017/")
 db = client["hub_estudantes"]
 
-
-# ====================================================================
-# INFRAESTRUTURA DE BANCO: NORMALIZAÇÃO E RESOLUÇÃO DE FONTES
-# ====================================================================
 def garantir_metadados_fontes():
     """
     Abordagem Híbrida NoSQL: Mantém uma coleção normatizada contendo a governança,
@@ -103,10 +99,6 @@ def resolver_vinculo_fonte(documento: dict):
             }
     return documento
 
-
-# ====================================================================
-# FUNÇÃO AUXILIAR: INTELIGÊNCIA ARTIFICIAL BASEADA EM REGEX (DATA CLEANSING)
-# ====================================================================
 def extrair_e_converter_data(texto: str) -> datetime:
     if not texto:
         return None
@@ -126,20 +118,14 @@ def extrair_e_converter_data(texto: str) -> datetime:
 def raiz():
     return {"mensagem": "A API do TechHub está online! Acesse /docs para testar."}
 
-
-# ====================================================================
-# ROTAS COM PAGINAÇÃO ATIVA E RESOLUÇÃO DE FONTES INTEGRADA
-# ====================================================================
-
 @app.get("/api/estagios")
-def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = Query(False)):
+def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = False):
     colecao = db["vagas_estagio"]
     pulo = (pagina - 1) * limite
 
-    # Filtro para mostrar apenas editais vigentes (não vencidos)
     filtro = {}
     if apenas_vigentes:
-        filtro["status_vigencia"] = {"$ne": "vencido"}
+        filtro["data_vencimento"] = {"$gte": datetime.now()}
 
     lista_vagas = []
     for vaga in colecao.find(filtro).skip(pulo).limit(limite):
@@ -147,7 +133,6 @@ def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), 
         if isinstance(vaga.get("data_vencimento"), datetime):
             vaga["data_vencimento_formatada"] = vaga["data_vencimento"].strftime("%d/%m/%Y")
 
-        # Injeta os metadados normatizados da PRAE no JSON de saída
         vaga = resolver_vinculo_fonte(vaga)
         lista_vagas.append(vaga)
 
@@ -159,14 +144,13 @@ def listar_estagios(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), 
     }
 
 @app.get("/api/bolsas")
-def listar_bolsas(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = Query(False)):
+def listar_bolsas(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = False):
     colecao = db["vagas_bolsa"]
     pulo = (pagina - 1) * limite
 
-    # Filtro para mostrar apenas editais vigentes (não vencidos)
     filtro = {}
     if apenas_vigentes:
-        filtro["status_vigencia"] = {"$ne": "vencido"}
+        filtro["data_vencimento"] = {"$gte": datetime.now()}
 
     lista_bolsas = []
     for bolsa in colecao.find(filtro).skip(pulo).limit(limite):
@@ -185,14 +169,13 @@ def listar_bolsas(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), ap
     }
 
 @app.get("/api/ufersa")
-def listar_ufersa(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = Query(False)):
+def listar_ufersa(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = False):
     colecao = db["vagas_ufersa"]
     pulo = (pagina - 1) * limite
 
-    # Filtro para mostrar apenas editais vigentes (não vencidos)
     filtro = {}
     if apenas_vigentes:
-        filtro["status_vigencia"] = {"$ne": "vencido"}
+        filtro["data_vencimento"] = {"$gte": datetime.now()}
 
     lista_ufersa = []
     for edital in colecao.find(filtro).skip(pulo).limit(limite):
@@ -211,15 +194,18 @@ def listar_ufersa(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), ap
     }
 
 @app.get("/api/ciee")
-def listar_ciee(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
+def listar_ciee(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = False):
     colecao = db["vagas_ciee"]
     pulo = (pagina - 1) * limite
 
+    filtro = {}
+    if apenas_vigentes:
+        filtro["data_vencimento"] = {"$gte": datetime.now()}
+
     lista_ciee = []
-    for vaga in colecao.find().skip(pulo).limit(limite):
+    for vaga in colecao.find(filtro).skip(pulo).limit(limite):
         vaga["_id"] = str(vaga["_id"])
 
-        # 🔧 NORMALIZAÇÃO: Criar campo "nome" esperado pelo frontend
         vaga["nome"] = vaga.get("nome_completo") or vaga.get("titulo") or "Vaga CIEE"
 
         if isinstance(vaga.get("data_vencimento"), datetime):
@@ -231,21 +217,21 @@ def listar_ciee(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
-        "total_documentos": colecao.count_documents({}),
+        "total_documentos": colecao.count_documents(filtro),
         "dados": lista_ciee
     }
 
-
-# ====================================================================
-# ENDPOINT DE CONTINGÊNCIA: CARREGAMENTO DE COORDENADAS MINERADAS UERN
-# ====================================================================
 @app.get("/api/portal_uern")
-def listar_portal_uern(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
+def listar_portal_uern(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1), apenas_vigentes: bool = False):
     colecao = db["vagas_portal_uern"]
     pulo = (pagina - 1) * limite
 
+    filtro = {}
+    if apenas_vigentes:
+        filtro["data_vencimento"] = {"$gte": datetime.now()}
+
     lista_portal = []
-    for edital in colecao.find().skip(pulo).limit(limite):
+    for edital in colecao.find(filtro).skip(pulo).limit(limite):
         edital["_id"] = str(edital["_id"])
         if isinstance(edital.get("data_vencimento"), datetime):
             edital["data_vencimento_formatada"] = edital["data_vencimento"].strftime("%d/%m/%Y")
@@ -256,7 +242,7 @@ def listar_portal_uern(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1
     return {
         "pagina_atual": pagina,
         "limite_por_pagina": limite,
-        "total_documentos": colecao.count_documents({}),
+        "total_documentos": colecao.count_documents(filtro),
         "dados": lista_portal
     }
 
@@ -294,11 +280,6 @@ def listar_noticias(pagina: int = Query(1, ge=1), limite: int = Query(6, ge=1)):
         "total_documentos": colecao.count_documents({}),
         "dados": lista_noticias
     }
-
-
-# ==========================================
-# RECURSOS DE INFRAESTRUTURA & PESQUISA
-# ==========================================
 
 @app.get("/api/pesquisar")
 def pesquisar_unificado(termo: str = Query(..., min_length=2)):
@@ -406,11 +387,6 @@ def obter_status_do_banco():
         "host": "MongoDB Local (localhost:27017)",
         "colecoes": status_colecoes
     }
-
-
-# ====================================================================
-# SCRIPT DE EXECUÇÃO GLOBAL INTEGRADO (PRESERVA SISTEMA ANTIGO RÁPIDO)
-# ====================================================================
 @app.get("/api/buscar-tudo")
 def acionar_todos_os_robos():
     print("\n[SISTEMA] Iniciando a Varredura Global de Infraestrutura...")
@@ -442,12 +418,6 @@ def acionar_todos_os_robos():
         print("-> A raspar Notícias...")
         atualizar_noticias_agora()
 
-        # NOTA TÉCNICA: A coleção 'vagas_portal_uern' é alimentada de forma assíncrona
-        # via script de sementes (popular_portal.py) para contornar bloqueios do Cloudflare.
-
-        # ------------------------------------------------------------
-        # PIPELINE DE HIGIENIZAÇÃO E CRUZA DE REFERÊNCIAS NOSQL
-        # ------------------------------------------------------------
         print("[MIGRAÇÃO] Rodando Normalização Heurística de Dados...")
 
         # Mapeia qual coleção pertence a qual chave identificadora de fonte

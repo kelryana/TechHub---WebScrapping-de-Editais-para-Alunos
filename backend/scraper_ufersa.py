@@ -1,33 +1,41 @@
+##backend/scraper_ufersa.py 
 import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 import re
 from datetime import datetime
-from pdf_utils import extrair_data_vencimento_hibrido, verificar_status
-
-MONGODB_URI = "mongodb://localhost:27017/"
-NOME_BANCO = "hub_estudantes"
-NOME_COLECAO = "vagas_ufersa"
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-}
 
 def conectar_banco():
-    client = MongoClient(MONGODB_URI)
-    db = client[NOME_BANCO]
-    return db[NOME_COLECAO]
+    client = MongoClient("mongodb://localhost:27017/")
+    db = client["hub_estudantes"]
+    return db["vagas_ufersa"]
 
-def extrair_data_completa(texto_html, link_pdf):
-    """
-    Estratégia híbrida para extrair data de vencimento.
-    Retorna string no formato YYYY-MM-DD.
-    """
-    return extrair_data_vencimento_hibrido(texto_html, link_pdf)
+def extrair_data_vencimento(texto):
+    if not texto:
+        return None
+
+    padroes = [
+        r"\b(\d{2})/(\d{2})/(\d{4})\b",
+        r"\b(\d{1,2})\s*[-/]\s*(\d{1,2})\s*[-/]\s*(\d{4})\b",
+    ]
+
+    for padrao in padroes:
+        match = re.search(padrao, texto)
+        if match:
+            try:
+                dia, mes, ano = int(match.group(1)), int(match.group(2)), int(match.group(3))
+                data = datetime(ano, mes, dia)
+                if data >= datetime.now():
+                    return data
+            except ValueError:
+                continue
+    return None
 
 def raspar_lista_ufersa(url_menu, ano_filtro, colecao_bd):
     print(f"Passo 1: Acessando o menu da UFERSA: {url_menu} (Filtro: {ano_filtro})")
+    headers = {'User-Agent': 'Mozilla/5.0'}
 
-    resposta_menu = requests.get(url_menu, headers=HEADERS)
+    resposta_menu = requests.get(url_menu, headers=headers)
     if resposta_menu.status_code != 200:
         print("Erro ao acessar a página de lista.")
         return
@@ -36,7 +44,6 @@ def raspar_lista_ufersa(url_menu, ano_filtro, colecao_bd):
 
     links_visitados = set()
     editais_inseridos = 0
-    editais_vencidos = 0
 
     for tag_a in soup_menu.find_all('a'):
         texto_link = tag_a.get_text(strip=True)
@@ -52,13 +59,12 @@ def raspar_lista_ufersa(url_menu, ano_filtro, colecao_bd):
                 print(f"\n-> Encontrou: {texto_link[:50]}...")
 
                 try:
-                    resposta_edital = requests.get(url_edital, headers=HEADERS)
+                    resposta_edital = requests.get(url_edital, headers=headers)
                     soup_edital = BeautifulSoup(resposta_edital.text, 'html.parser')
 
                     nome_edital = texto_link
                     link_pdf = url_edital
 
-                    # Buscar o PDF real
                     for a_pdf in soup_edital.find_all('a'):
                         texto_pdf = a_pdf.get_text(strip=True).upper()
                         href_pdf = a_pdf.get('href', '')
@@ -67,31 +73,20 @@ def raspar_lista_ufersa(url_menu, ano_filtro, colecao_bd):
                             link_pdf = href_pdf
                             break
 
-                    data_vencimento = extrair_data_completa(texto_link, link_pdf)
-
-                    status_vigencia = verificar_status(data_vencimento)
-
-                    # Log do resultado
-                    if data_vencimento:
-                        if status_vigencia == "vencido":
-                            editais_vencidos += 1
-                            print(f"   ⚠️  VENCIDO: {nome_edital[:60]}... (venceu em {data_vencimento})")
-                        else:
-                            print(f"   ✅ VIGENTE: {nome_edital[:60]}... (vence em {data_vencimento})")
-                    else:
-                        print(f"   ❓ SEM DATA: {nome_edital[:60]}...")
+                    data_vencimento = extrair_data_vencimento(nome_edital)
 
                     documento = {
                         "nome": nome_edital,
                         "link": link_pdf,
                         "categoria": "Auxílio/Bolsa",
-                        "fonte": "UFERSA",
-                        "data_vencimento": data_vencimento,  # String YYYY-MM-DD
-                        "status_vigencia": status_vigencia
+                        "fonte": "UFERSA"
                     }
 
+                    if data_vencimento:
+                        documento["data_vencimento"] = data_vencimento
+
                     colecao_bd.update_one(
-                        {"link": link_pdf},
+                        {"nome": nome_edital},
                         {"$set": documento},
                         upsert=True
                     )
@@ -101,10 +96,7 @@ def raspar_lista_ufersa(url_menu, ano_filtro, colecao_bd):
                 except Exception as e:
                     print(f"   [Erro ao ler a página do edital: {e}]")
 
-    print(f"\nResumo UFERSA:")
-    print(f"  ✅ {editais_inseridos - editais_vencidos} editais VIGENTES")
-    print(f"  ⚠️  {editais_vencidos} editais VENCIDOS")
-    print(f"  📊 Total: {editais_inseridos} editais salvos.\n")
+    print(f"\nFinalizado! {editais_inseridos} editais da UFERSA salvos.")
 
 if __name__ == "__main__":
     colecao = conectar_banco()

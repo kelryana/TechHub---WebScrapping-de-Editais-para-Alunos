@@ -1,9 +1,4 @@
-#!/usr/bin/env python3
-"""
-SCRAPER CIEE HÍBRIDO - Combina extração detalhada + robustez
-Autor: TechHub UERN
-Versão: 2.0
-"""
+##backend/scraper_ciee.py (修改后)
 
 import logging
 import re
@@ -23,19 +18,11 @@ from webdriver_manager.firefox import GeckoDriverManager
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
-# ============================================
-# CONFIGURAÇÕES
-# ============================================
-
 MONGO_URI = "mongodb://localhost:27017/"
 DB_NAME = "hub_estudantes"
 COLLECTION_NAME = "vagas_ciee"
 CIDADE = "Mossoró"
 URL_CIEE = "https://portal.ciee.org.br/"
-
-# ============================================
-# LOGGING
-# ============================================
 
 logging.basicConfig(
     level=logging.INFO,
@@ -46,10 +33,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-
-# ============================================
-# SCRAPER
-# ============================================
 
 class ScraperCIEEHibrido:
     def __init__(self, cidade=CIDADE):
@@ -368,12 +351,17 @@ class ScraperCIEEHibrido:
                         "fonte": "CIEE",
                         "coletado_em": datetime.now(),
                         "session_id": self.session_id
-                    }
 
-                    # Tentar extrair data
-                    data_match = re.search(r"\b(\d{2}/\d{2}/\d{4})\b", texto_card)
+                    # Tentar extrair data e converter para datetime
+                    data_match = re.search(r"\b(\d{2})/(\d{2})/(\d{4})\b", texto_card)
                     if data_match:
-                        vaga["data_vencimento"] = data_match.group(1)
+                        try:
+                            dia, mes, ano = int(data_match.group(1)), int(data_match.group(2)), int(data_match.group(3))
+                            data_vencimento = datetime(ano, mes, dia)
+                            if data_vencimento >= datetime.now():
+                                vaga["data_vencimento"] = data_vencimento
+                        except ValueError:
+                            pass
 
                     vagas_temp.append(vaga)
 
@@ -516,10 +504,6 @@ class ScraperCIEEHibrido:
             if self.driver:
                 self.driver.quit()
                 logger.info("🔚 Navegador fechado")
-
-# ============================================
-# MAIN
-# ============================================
 
 def main():
     import argparse
