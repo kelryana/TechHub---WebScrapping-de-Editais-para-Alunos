@@ -5,38 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TechHub UERN - Dashboard de Oportunidades</title>
     <link rel="stylesheet" href="style.css">
+    <!-- ADICIONE ISSO PARA OS ÍCONES -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 <body>
-    <header style="position: relative;">
-        <button id="btn-buscar-tudo" onclick="acionarTodosOsRobos()">Buscar 🤖</button>
-
-        <div class="logo">
-            <h1>TechHub <span>UERN</span></h1>
+    <!-- HEADER MEMPHIS INSPIRADO -->
+    <header class="memphis-header">
+        <!-- Padrão quadriculado de fundo -->
+        <div class="memphis-grid-bg"></div>
+        
+        <!-- Formas geométricas decorativas inspiradas na imagem -->
+        <div class="shape shape-circle"></div>
+        <div class="shape shape-triangle"></div>
+        <div class="shape shape-zigzag">
+            <svg viewBox="0 0 100 20" width="100" height="20">
+                <path d="M 0 10 L 20 0 L 40 20 L 60 0 L 80 20 L 100 10" fill="none" stroke="#F27A18" stroke-width="4"/>
+            </svg>
         </div>
-        <p>Agregador de Oportunidades para Estudantes</p>
 
-        <div class="busca-container" style="margin-top: 15px; padding-bottom: 20px;">
-            <input type="text" id="input-busca" placeholder="Pesquisar editais (ex: estágio, monitoria, TI)..." onkeyup="if(event.key === 'Enter') realizarPesquisa()" style="padding: 8px; width: 300px;">
-            <button id="btn-pesquisar" onclick="realizarPesquisa()" style="padding: 8px 15px;">Buscar 🔍</button>
+        <!-- Conteúdo do Header (Logotipo e Menu) -->
+        <div class="header-container">
+            <div class="logo">
+                <span>TechHub UERN</span>
+            </div>
+        </div>
+        
+        <!-- Barra de busca com elementos geométricos -->
+        <div class="busca-container-memphis">
+            <input type="text" id="input-busca" placeholder="Pesquisar editais (ex: estágio, monitoria, TI)..." onkeyup="if(event.key === 'Enter') realizarPesquisa()">
+            <button id="btn-pesquisar" onclick="realizarPesquisa()">
+                <i class="ph ph-magnifying-glass"></i> Buscar
+            </button>
+            <!-- Botão Robô agora dentro da busca -->
+            <button id="btn-buscar-tudo" onclick="acionarTodosOsRobos()" title="Raspar dados">
+                <i class="ph ph-robot"></i>
+            </button>
         </div>
     </header>
 
     <main>
+        <!-- Seus botões de controle (sem emojis, só ícones) -->
         <div class="controles">
-            <button id="btn-estagios" class="ativo" onclick="carregarDados('estagios')">Ver Estágios (PRAE)</button>
-            <button id="btn-bolsas" onclick="carregarDados('bolsas')">Ver Bolsas (PROEX)</button>
-            <button id="btn-ufersa" onclick="carregarDados('ufersa')">Ver Editais (UFERSA)</button>
-            <button id="btn-ciee" onclick="carregarDados('ciee')">Ver Vagas (CIEE)</button>
-
-            <button id="btn-portal_uern" onclick="carregarDados('portal_uern')" style="border-color: #008080;">Portal UERN 🎓</button>
-
-            <button id="btn-noticias" onclick="carregarDados('noticias')" style="border-color: #2E8B57;">Notícias Tech ⚡</button>
-            <button id="btn-analises" onclick="carregarEstatisticas()" style="border-color: #F27A18;">Indicadores Globais 📊</button>
+            <button id="btn-estagios" class="ativo" onclick="carregarDados('estagios')"><i class="ph ph-student"></i> Estágios (PRAE)</button>
+            <button id="btn-bolsas" onclick="carregarDados('bolsas')"><i class="ph ph-coins"></i> Bolsas (PROEX)</button>
+            <button id="btn-ufersa" onclick="carregarDados('ufersa')"><i class="ph ph-buildings"></i> Editais (UFERSA)</button>
+            <button id="btn-ciee" onclick="carregarDados('ciee')"><i class="ph ph-briefcase"></i> Vagas (CIEE)</button>
+            <button id="btn-portal_uern" onclick="carregarDados('portal_uern')"><i class="ph ph-graduation-cap"></i> Portal UERN</button>
+            <button id="btn-noticias" onclick="carregarDados('noticias')"><i class="ph ph-lightning"></i> Notícias Tech</button>
+            <button id="btn-analises" onclick="carregarEstatisticas()"><i class="ph ph-chart-bar"></i> Indicadores</button>
         </div>
 
-        <div class="filtros-adicionais" style="margin: 20px 0; display: flex; align-items: center; gap: 10px;">
+        <div class="filtros-adicionais">
             <input type="checkbox" id="filtroVigentes" onchange="toggleFiltroVigentes()">
-            <label for="filtroVigentes" style="font-weight: bold; color: var(--azul-escuro); cursor: pointer;">Mostrar apenas vigentes</label>
+            <label for="filtroVigentes">Mostrar apenas vigentes</label>
         </div>
 
         <div id="container-vagas" class="grid-vagas">
@@ -44,8 +65,8 @@
         </div>
     </main>
 
-    <footer style="margin-top: 50px; padding: 25px; text-align: center; border-top: 3px solid var(--azul-escuro); font-size: 0.85rem; color: #555;">
-        <p>© TechHub UERN Mossoró | 2026</p>
+    <footer>
+        <p>© TechHub UERN Mossoró | 2026 <span class="footer-lines"></span></p>
     </footer>
 
     <script src="script.js"></script>
