@@ -351,6 +351,7 @@ class ScraperCIEEHibrido:
                         "fonte": "CIEE",
                         "coletado_em": datetime.now(),
                         "session_id": self.session_id
+                    }
 
                     # Tentar extrair data e converter para datetime
                     data_match = re.search(r"\b(\d{2})/(\d{2})/(\d{4})\b", texto_card)
