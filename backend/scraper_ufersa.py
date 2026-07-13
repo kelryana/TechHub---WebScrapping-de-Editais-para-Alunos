@@ -1,4 +1,5 @@
 ##backend/scraper_ufersa.py 
+
 import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
@@ -25,8 +26,7 @@ def extrair_data_vencimento(texto):
             try:
                 dia, mes, ano = int(match.group(1)), int(match.group(2)), int(match.group(3))
                 data = datetime(ano, mes, dia)
-                if data >= datetime.now():
-                    return data
+                return data
             except ValueError:
                 continue
     return None

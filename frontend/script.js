@@ -1,33 +1,33 @@
-//frontend/script.js
-// URL base da sua API FastAPI
+//frontend/script.js 
+
 const API_URL = "http://localhost:8000/api";
 
 // Controle de estado global da paginação
 let paginaAtual = 1;
 let tipoAtual = 'estagios';
+let filtroVigentesAtivo = false;
 
 // Quando a página carregar, puxa os estágios por padrão
 window.onload = () => {
     carregarDados('estagios');
 };
 
-// --- FUNÇÕES DE BUSCA E NAVEGAÇÃO ---
-
-// Função auxiliar para obter o parâmetro de vigência
-function getParametroVigencia() {
+function toggleFiltroVigentes() {
     const checkbox = document.getElementById('filtroVigentes');
-    return checkbox && checkbox.checked ? '?apenas_vigentes=true' : '';
+    filtroVigentesAtivo = checkbox.checked;
+    carregarDados(tipoAtual, 1);
 }
+
+// --- FUNÇÕES DE BUSCA E NAVEGAÇÃO ---
 
 async function carregarDados(tipo, novaPagina = 1) {
     tipoAtual = tipo;
     paginaAtual = novaPagina;
 
     const container = document.getElementById('container-vagas');
-    container.style.display = 'grid'; // Garante o layout grid
+    container.style.display = 'grid';
     container.innerHTML = '<p class="carregando">Buscando dados no banco...</p>';
 
-    // Remove a classe ativa de todos os botões
     document.querySelectorAll('.controles button').forEach(botao => {
         botao.classList.remove('ativo');
     });
@@ -36,16 +36,15 @@ async function carregarDados(tipo, novaPagina = 1) {
     if(botaoAtivo) botaoAtivo.classList.add('ativo');
 
     try {
-        // Envia os parâmetros de paginação via URL Query String para o MongoDB
-        const parametroVigencia = getParametroVigencia();
-        const url = `${API_URL}/${tipo}?pagina=${paginaAtual}&limite=6${parametroVigencia}`;
+        let url = `${API_URL}/${tipo}?pagina=${paginaAtual}&limite=6`;
+        if (filtroVigentesAtivo) {
+            url += `&apenas_vigentes=true`;
+        }
+
         const resposta = await fetch(url);
         const objetoPaginado = await resposta.json();
 
-        // Envia apenas o array '.dados' para renderizar os cards
         renderizarCards(objetoPaginado.dados);
-
-        // Injeta os controles visuais de paginação logo após os cards
         renderizarControlesPaginacao(objetoPaginado.pagina_atual, objetoPaginado.total_documentos, objetoPaginado.limite_por_pagina);
 
     } catch (erro) {
@@ -101,21 +100,13 @@ async function realizarPesquisa() {
     if(antigo) antigo.remove();
 
     try {
-        const parametroVigencia = getParametroVigencia();
-        const url = `${API_URL}/pesquisar?termo=${termo}${parametroVigencia}`;
-        const resposta = await fetch(url);
+        const resposta = await fetch(`${API_URL}/pesquisar?termo=${termo}`);
         const dados = await resposta.json();
         renderizarCards(dados);
         document.querySelectorAll('.controles button').forEach(b => b.classList.remove('ativo'));
     } catch (e) {
         container.innerHTML = '<p class="carregando" style="color: red;">Erro na pesquisa.</p>';
     }
-}
-
-// Função para toggle do filtro de vigentes
-function toggleFiltroVigentes() {
-    // Recarrega os dados com o novo filtro
-    carregarDados(tipoAtual, 1);
 }
 
 async function carregarEstatisticas() {
@@ -222,8 +213,6 @@ async function carregarEstatisticas() {
         container.innerHTML = '<p class="carregando" style="color: red;">Falha ao gerar o painel visual das estatísticas.</p>';
     }
 }
-
-
 function renderizarCards(listaDeVagas) {
     const container = document.getElementById('container-vagas');
     container.innerHTML = '';
@@ -235,14 +224,6 @@ function renderizarCards(listaDeVagas) {
 
     listaDeVagas.forEach(vaga => {
         const temaVerde = vaga.categoria === "Notícia Tech" ? "card-verde" : "";
-
-        // Badge de vigência (Vigente/Vencido)
-        let badgeVigenciaHTML = "";
-        if (vaga.status_vigencia === "vigente") {
-            badgeVigenciaHTML = `<span class="badge-vigente">VIGENTE</span>`;
-        } else if (vaga.status_vigencia === "vencido") {
-            badgeVigenciaHTML = `<span class="badge-vencido">VENCIDO</span>`;
-        }
 
         // Inserção da Badge Dinâmica Interativa se houver prazo detectado por Regex no banco
         let badgeDataHTML = "";
@@ -267,8 +248,7 @@ function renderizarCards(listaDeVagas) {
         }
 
         const cardHTML = `
-            <div class="card ${temaVerde}" style="position: relative;">
-                ${badgeVigenciaHTML}
+            <div class="card ${temaVerde}">
                 <div>
                     <div style="display: flex; flex-direction: column; align-items: flex-start;">
                         <span class="card-categoria">${vaga.categoria || 'Geral'}</span>
@@ -283,7 +263,6 @@ function renderizarCards(listaDeVagas) {
         container.innerHTML += cardHTML;
     });
 }
-
 async function carregarInspector() {
     const antigo = document.getElementById('bloco-paginacao');
     if(antigo) antigo.remove();

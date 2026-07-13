@@ -1,4 +1,4 @@
-##backend/scraper_ciee.py (修改后)
+##backend/scraper_ciee.py 
 
 import logging
 import re
@@ -358,8 +358,7 @@ class ScraperCIEEHibrido:
                         try:
                             dia, mes, ano = int(data_match.group(1)), int(data_match.group(2)), int(data_match.group(3))
                             data_vencimento = datetime(ano, mes, dia)
-                            if data_vencimento >= datetime.now():
-                                vaga["data_vencimento"] = data_vencimento
+                            vaga["data_vencimento"] = data_vencimento
                         except ValueError:
                             pass
 
@@ -504,7 +503,6 @@ class ScraperCIEEHibrido:
             if self.driver:
                 self.driver.quit()
                 logger.info("🔚 Navegador fechado")
-
 def main():
     import argparse
 
