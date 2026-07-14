@@ -35,7 +35,7 @@ git clone [https://github.com/PatoDesoxigenado/TechHub---WebScrapping-de-Editais
 cd TechHub---WebScrapping-de-Editais-para-Alunos
 
 # Criar e ativar ambiente virtual (Windows)
-python -m venv venv
+python3 -m venv venv
 venv\Scripts\activate
 
 # Instalar dependências

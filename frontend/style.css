@@ -17,7 +17,6 @@
 body {
     background-color: var(--branco); /* Changed from var(--fundo) to match header */
     color: var(--azul-escuro);
-    display: flex;
     flex-direction: column;
     min-height: 100vh;
     position: relative;
@@ -33,7 +32,6 @@ body::before {
     width: 100%;
     height: 100%;
     background-image: linear-gradient(to right, rgba(0, 0, 0, 0.11) 1px, #0000 1px), linear-gradient(to bottom, rgba(9, 24, 77, 0.17) 1px, #0000 1px);
-    background-size: 20px 20px;
     z-index: -1;
     pointer-events: none;
 }
@@ -84,7 +82,7 @@ body::before {
     box-shadow: 6px 6px 0px var(--azul-escuro);
     position: absolute;
     right: 420px; 
-    top: -79px; 
+    top: -91px; 
     transform: rotate(-1deg);
 }
 
@@ -156,7 +154,7 @@ body::before {
 /* Barra de busca Memphis */
 .busca-container-memphis {
     position: absolute;
-    bottom: 10px;
+    bottom: 29px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
