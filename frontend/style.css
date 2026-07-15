@@ -36,9 +36,6 @@ body::before {
     pointer-events: none;
 }
 
-/* ========================================================
-   NOVAS FORMAS NEO-MEMPHIS (DECORAÇÃO DE FUNDO)
-   ======================================================== */
 .memphis-shapes-container {
     position: fixed;
     top: 0;
@@ -52,20 +49,21 @@ body::before {
 
 /* Rosca Laranja (Topo Esquerdo, atrás do menu) */
 .donut-orange {
-    position: absolute;
-    top: 80px;
-    left: -40px;
-    width: 160px;
-    height: 160px;
-    background-color: var(--laranja);
-    border: 6px solid var(--azul-escuro);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 8px 8px 0px var(--azul-escuro);
-    z-index: 0;
+  position: absolute;
+  top: 80px;
+  left: 95px;
+  width: 160px;
+  height: 160px;
+  background-color: var(--laranja);
+  border: 6px solid var(--azul-escuro);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 8px 8px 0px var(--azul-escuro);
+  z-index: 0;
 }
+
 .donut-orange::after {
     content: '';
     width: 70px;
@@ -79,7 +77,7 @@ body::before {
 .zigzag-line {
     position: absolute;
     top: 45%;
-    left: -60px;
+    left: 39px;
     width: 250px;
     height: 40px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' width='100%25' height='100%25'%3E%3Cpath d='M0,60 L50,20 L100,60 L150,20 L200,60 L250,20 L300,60 L350,20 L400,60 L450,20 L500,60 L550,20 L600,60' fill='none' stroke='%23F27A18' stroke-width='25' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -90,46 +88,40 @@ body::before {
 
 /* Triângulo Laranja (Canto Inferior Direito) */
 .triangle-orange {
-    position: absolute;
-    bottom: 50px;
-    right: 30px;
-    width: 0;
-    height: 0;
-    border-left: 100px solid transparent;
-    border-right: 100px solid transparent;
-    border-bottom: 160px solid var(--laranja);
-    filter: drop-shadow(8px 4px 0px var(--azul-escuro));
-    z-index: 0;
+  position: absolute;
+  bottom: 122px;
+  right: 30px;
+  width: 0;
+  height: 0;
+  border-left: 100px solid transparent;
+  border-right: 100px solid transparent;
+  border-bottom: 160px solid var(--laranja);
+  filter: drop-shadow(8px 4px 0px var(--azul-escuro));
+  z-index: 0;
 }
 
 /* Círculo com Listras (Canto Inferior Esquerdo) */
 .circle-stripes {
-    position: absolute;
-    bottom: 80px;
-    left: 30px;
-    width: 110px;
-    height: 110px;
-    border: 6px solid var(--azul-escuro);
-    border-radius: 50%;
-    z-index: 0;
-    background: repeating-linear-gradient(
-        45deg,
-        var(--laranja),
-        var(--laranja) 6px,
-        var(--azul-escuro) 6px,
-        var(--azul-escuro) 12px
-    );
-    box-shadow: -6px 6px 0px var(--branco), -6px 6px 0px 6px var(--azul-escuro);
+  position: absolute;
+  bottom: 184px;
+  left: 179px;
+  width: 108px;
+  height: 110px;
+  border: 6px solid var(--azul-escuro);
+  border-radius: 50%;
+  z-index: 0;
+  background: repeating-linear-gradient( 45deg, var(--laranja), var(--laranja) 6px, var(--azul-escuro) 6px, var(--azul-escuro) 12px );
+  box-shadow: -6px 6px 0px var(--branco), -6px 6px 0px 6px var(--azul-escuro);
 }
 
 /* Pequenas Cruzes de Detalhe (Espalhadas) */
 .cross {
-    position: absolute;
-    font-size: 24px;
-    font-weight: 900;
-    color: var(--azul-escuro);
-    user-select: none;
-    z-index: 0;
+  position: absolute;
+  font-size: 103px;
+  font-weight: 900;
+  color: var(--azul-escuro);
+  user-select: none;
+  z-index: 0;
 }
 /* ======================================================== */
 
@@ -342,7 +334,6 @@ main {
 
 .card:hover::after {
     transform: translate(4px, 4px);
-    background: var(--laranja);
 }
 
 .card-categoria {
@@ -396,18 +387,13 @@ main {
     background: var(--verde-forte);
     border-color: var(--verde-forte);
 }
-.card-verde:hover::after {
-    background: var(--verde-forte);
-}
+
 .card-verde .card-categoria {
     background: #C8E6C9;
     color: #1B5E20;
 }
 .card-verde .card-link {
     background: var(--verde-forte);
-}
-.card-verde .card-link:hover {
-    background: #1e5a38;
 }
 
 .card:active,
