@@ -8,6 +8,13 @@ from datetime import datetime, timedelta
 import time
 import re
 import json
+from pymongo import MongoClient
+
+def conectar_banco():
+    """Conecta ao MongoDB e retorna a coleção vagas_portal_uern"""
+    client = MongoClient("mongodb://localhost:27017/")
+    db = client["hub_estudantes"]
+    return db["vagas_portal_uern"]
 
 # Palavras-chave para filtrar oportunidades relevantes
 PALAVRAS_CHAVE_OPORTUNIDADES = [
@@ -16,43 +23,6 @@ PALAVRAS_CHAVE_OPORTUNIDADES = [
     "inscrições", "cursos", "vagas abertas", "processo seletivo",
     "extensão", "pesquisa", "iniciação científica"
 ]
-
-def extrair_data_do_texto(texto):
-    """Tenta extrair uma data do texto para usar como vencimento"""
-    if not texto:
-        return datetime.now()
-
-    # Padrões comuns de data no Brasil
-    padroes = [
-        r"\b(\d{2})/(\d{2})/(\d{4})\b",  # DD/MM/YYYY
-        r"\b(\d{2})-(\d{2})-(\d{4})\b",  # DD-MM-YYYY
-    ]
-
-    for padrao in padroes:
-        match = re.search(padrao, texto, re.IGNORECASE)
-        if match:
-            try:
-                g1, g2, g3 = match.groups()
-                return datetime(int(g3), int(g2), int(g1))
-            except (ValueError, AttributeError):
-                pass
-
-    # Se não encontrar data específica, retorna data atual + 7 dias (padrão)
-    return datetime.now() + timedelta(days=7)
-
-def analisar_relevancia(texto):
-    """Analisa se o conteúdo contém palavras-chave de oportunidade"""
-    if not texto:
-        return False, []
-
-    texto_lower = texto.lower()
-    palavras_encontradas = []
-
-    for palavra in PALAVRAS_CHAVE_OPORTUNIDADES:
-        if palavra in texto_lower:
-            palavras_encontradas.append(palavra)
-
-    return len(palavras_encontradas) > 0, palavras_encontradas
 
 def criar_navegador_headless():
     """Cria uma instância do Chrome em modo headless com configurações anti-detecção"""
@@ -69,7 +39,7 @@ def criar_navegador_headless():
     opcoes.add_experimental_option("excludeSwitches", ["enable-automation"])
     opcoes.add_experimental_option("useAutomationExtension", False)
 
-    service = Service(ChromeDriverManager().install())
+    service = Service("/usr/local/bin/chromedriver")
     driver = webdriver.Chrome(service=service, options=opcoes)
 
     # Executa CDP para remover flags de automação
@@ -107,7 +77,7 @@ def extrair_data_do_texto(texto):
             try:
                 if len(match.groups()) == 3:
                     g1, g2, g3 = match.groups()
-                    if padrao.includes("Mês"):
+                    if "Mês" in padrao:
                         meses = {"janeiro": 1, "fevereiro": 2, "março": 3, "abril": 4,
                                 "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
                                 "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12}
