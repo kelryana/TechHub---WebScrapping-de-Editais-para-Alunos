@@ -15,15 +15,15 @@
 }
 
 body {
-    background-color: var(--branco); /* Changed from var(--fundo) to match header */
+    background-color: var(--branco);
     color: var(--azul-escuro);
     flex-direction: column;
     min-height: 100vh;
     position: relative;
-    overflow-x: hidden; /* Prevent horizontal scroll due to grid pattern */
+    overflow-x: hidden;
 }
 
-/* Apply the same grid pattern as the header to the entire body */
+/* --- FUNDO QUADRICULADO (Já existente) --- */
 body::before {
     content: '';
     position: absolute;
@@ -35,6 +35,103 @@ body::before {
     z-index: -1;
     pointer-events: none;
 }
+
+/* ========================================================
+   NOVAS FORMAS NEO-MEMPHIS (DECORAÇÃO DE FUNDO)
+   ======================================================== */
+.memphis-shapes-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none; /* Permite clicar através das formas */
+    overflow: hidden;
+}
+
+/* Rosca Laranja (Topo Esquerdo, atrás do menu) */
+.donut-orange {
+    position: absolute;
+    top: 80px;
+    left: -40px;
+    width: 160px;
+    height: 160px;
+    background-color: var(--laranja);
+    border: 6px solid var(--azul-escuro);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 8px 8px 0px var(--azul-escuro);
+    z-index: 0;
+}
+.donut-orange::after {
+    content: '';
+    width: 70px;
+    height: 70px;
+    background-color: var(--branco);
+    border: 6px solid var(--azul-escuro);
+    border-radius: 50%;
+}
+
+/* Linha Zigue-Zague (Meio Esquerdo) */
+.zigzag-line {
+    position: absolute;
+    top: 45%;
+    left: -60px;
+    width: 250px;
+    height: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' width='100%25' height='100%25'%3E%3Cpath d='M0,60 L50,20 L100,60 L150,20 L200,60 L250,20 L300,60 L350,20 L400,60 L450,20 L500,60 L550,20 L600,60' fill='none' stroke='%23F27A18' stroke-width='25' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-size: contain;
+    z-index: 0;
+}
+
+/* Triângulo Laranja (Canto Inferior Direito) */
+.triangle-orange {
+    position: absolute;
+    bottom: 50px;
+    right: 30px;
+    width: 0;
+    height: 0;
+    border-left: 100px solid transparent;
+    border-right: 100px solid transparent;
+    border-bottom: 160px solid var(--laranja);
+    filter: drop-shadow(8px 4px 0px var(--azul-escuro));
+    z-index: 0;
+}
+
+/* Círculo com Listras (Canto Inferior Esquerdo) */
+.circle-stripes {
+    position: absolute;
+    bottom: 80px;
+    left: 30px;
+    width: 110px;
+    height: 110px;
+    border: 6px solid var(--azul-escuro);
+    border-radius: 50%;
+    z-index: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        var(--laranja),
+        var(--laranja) 6px,
+        var(--azul-escuro) 6px,
+        var(--azul-escuro) 12px
+    );
+    box-shadow: -6px 6px 0px var(--branco), -6px 6px 0px 6px var(--azul-escuro);
+}
+
+/* Pequenas Cruzes de Detalhe (Espalhadas) */
+.cross {
+    position: absolute;
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--azul-escuro);
+    user-select: none;
+    z-index: 0;
+}
+/* ======================================================== */
 
 /* --- HEADER MEMPHIS INSPIRADO --- */
 .memphis-header {
@@ -49,9 +146,10 @@ body::before {
     align-items: center;
     overflow: hidden;
     font-family: 'Arial Black', sans-serif;
+    z-index: 10; /* Fica acima das formas de fundo */
 }
 
-/* Fundo Quadriculado Sutil */
+/* Fundo Quadriculado Sutil do Header */
 .memphis-grid-bg {
     position: absolute;
     top: 0;
@@ -63,7 +161,7 @@ body::before {
     z-index: 1;
 }
 
-/* Container do Conteúdo */
+/* Container do Conteúdo do Header */
 .header-container {
     position: relative;
     z-index: 10;
@@ -89,30 +187,6 @@ body::before {
 .logo span {
     font-size: 2.6rem;
     letter-spacing: 2px;
-}
-
-/* Menu de Navegação */
-.nav-menu {
-    display: flex;
-    gap: 20px;
-}
-
-.nav-link {
-    text-decoration: none;
-    color: var(--azul-escuro);
-    text-transform: uppercase;
-    font-size: 0.9rem;
-    padding: 8px 16px;
-    border: 3px solid transparent;
-    transition: all 0.2s ease;
-}
-
-/* Efeito Hover e Ativo usando Blocos Assimétricos */
-.nav-link:hover, .nav-link.active {
-    background-color: var(--laranja);
-    color: var(--branco);
-    border: 3px solid var(--azul-escuro);
-    box-shadow: 4px 4px 0px var(--azul-escuro);
 }
 
 /* Barra de busca Memphis */
@@ -165,7 +239,7 @@ body::before {
 
 /* --- ESTILOS ANTIGOS DO HEADER (OCULTADOS) --- */
 header {
-    display: none; /* Ocultando o header antigo */
+    display: none;
 }
 
 /* --- MAIN --- */
@@ -174,9 +248,9 @@ main {
     max-width: 1200px;
     margin: 0 auto;
     padding: 2.5rem 1.5rem;
-    background-color: var(--fundo); /* Restore original background for main content */
+    background-color: var(--fundo);
     position: relative;
-    z-index: 1;
+    z-index: 10; /* Garante que o conteúdo fique acima das formas de fundo */
 }
 
 /* BOTÕES DE CONTROLE */
@@ -230,7 +304,7 @@ main {
     accent-color: var(--laranja);
 }
 
-/* --- CARDS DE VAGAS (CORRIGIDO - SEM MUDANÇA DE COR NO HOVER) --- */
+/* --- CARDS DE VAGAS --- */
 .grid-vagas {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -238,7 +312,7 @@ main {
 }
 
 .card {
-    background: var(--branco); /* O fundo SEMPRE será branco */
+    background: var(--branco);
     border: 3px solid var(--azul-escuro);
     padding: 1.5rem;
     display: flex;
@@ -246,10 +320,9 @@ main {
     justify-content: space-between;
     position: relative;
     box-shadow: 8px 8px 0px rgba(9, 24, 77, 0.1);
-    transition: none; /* Removing transition to prevent any hover effects */
+    transition: none;
 }
 
-/* A sombra laranja ATRÁS do card (mantida, pois você gostou) */
 .card::after {
     content: '';
     position: absolute;
@@ -260,19 +333,18 @@ main {
     background: var(--laranja);
     z-index: -1;
     border: 3px solid var(--azul-escuro);
-    transition: none; /* Removing transition to prevent any hover effects */
+    transition: none;
 }
 
 .card:hover {
-    transform: none; /* Remove any hover transformation on the card itself */
+    transform: none;
 }
 
 .card:hover::after {
-    transform: translate(4px, 4px); /* Acompanha o movimento do card */
-    background: var(--laranja); /* Mantém a cor laranja atrás */
+    transform: translate(4px, 4px);
+    background: var(--laranja);
 }
 
-/* CATEGORIAS E TEXTOS (SEM ALTERAÇÃO DE COR NO HOVER) */
 .card-categoria {
     background: var(--azul-claro);
     color: var(--azul-escuro);
@@ -290,7 +362,7 @@ main {
     font-weight: 700;
     margin-bottom: 10px;
     line-height: 1.4;
-    color: var(--azul-escuro); /* Garantido que o texto não muda de cor */
+    color: var(--azul-escuro);
 }
 .card-fonte {
     font-size: 0.8rem;
@@ -310,22 +382,22 @@ main {
     box-shadow: 3px 3px 0 rgba(0,0,0,0.1);
 }
 .card-link:hover {
-    background: var(--laranja); /* Apenas o botão interno muda de cor */
+    background: var(--laranja);
     border-color: var(--azul-escuro);
     box-shadow: 3px 3px 0 var(--azul-escuro);
 }
 
-/* MODIFICADOR DE NOTÍCIA (APENAS A SOMBRA ATRÁS FICA VERDE, CARD BACKGROUND NÃO MUDA) */
+/* MODIFICADOR DE NOTÍCIA (VERDE) */
 .card-verde {
     border-color: var(--verde-forte);
-    background: var(--branco) !important; /* Ensure background stays white */
+    background: var(--branco) !important;
 }
 .card-verde::after {
-    background: var(--verde-forte); /* Sombra atrás verde */
+    background: var(--verde-forte);
     border-color: var(--verde-forte);
 }
 .card-verde:hover::after {
-    background: var(--verde-forte); /* Mantém verde no hover também */
+    background: var(--verde-forte);
 }
 .card-verde .card-categoria {
     background: #C8E6C9;
@@ -338,7 +410,6 @@ main {
     background: #1e5a38;
 }
 
-/* Ensure no other pseudo-class changes the card background */
 .card:active,
 .card:focus {
     background: var(--branco);
@@ -422,7 +493,6 @@ main {
 .contador-ufersa { border-color: var(--purpura); box-shadow: 5px 5px 0 var(--purpura); }
 .contador-noticias { border-color: var(--verde-forte); box-shadow: 5px 5px 0 var(--verde-forte); }
 
-/* GRÁFICOS NEOBRUTALISTAS */
 .dash-secao-grafico {
     padding-top: 1rem;
 }
@@ -493,6 +563,8 @@ footer {
     border-top: 3px solid var(--azul-escuro);
     font-weight: bold;
     margin-top: 2rem;
+    position: relative;
+    z-index: 10;
 }
 footer .footer-lines {
     display: inline-block;
