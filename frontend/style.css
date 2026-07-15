@@ -115,42 +115,6 @@ body::before {
     box-shadow: 4px 4px 0px var(--azul-escuro);
 }
 
-/* Formas Geométricas Decorativas */
-.shape {
-    position: absolute;
-    z-index: 2;
-}
-
-/* Círculo Laranja Cortado/Sobreposto */
-.shape-circle {
-    width: 60px;
-    height: 60px;
-    background-color: var(--laranja);
-    border: 4px solid var(--azul-escuro);
-    border-radius: 50%;
-    top: -20px;
-    right: 15%;
-}
-
-/* Triângulo Azul Escuro Inclinado */
-.shape-triangle {
-    width: 0;
-    height: 0;
-    border-left: 25px solid transparent;
-    border-right: 25px solid transparent;
-    border-bottom: 45px solid var(--azul-escuro);
-    bottom: 10px;
-    left: 25%;
-    transform: rotate(25deg);
-}
-
-/* Linha Zig-Zag */
-.shape-zigzag {
-    bottom: 15px;
-    right: 35%;
-    opacity: 0.7;
-}
-
 /* Barra de busca Memphis */
 .busca-container-memphis {
     position: absolute;
@@ -282,7 +246,7 @@ main {
     justify-content: space-between;
     position: relative;
     box-shadow: 8px 8px 0px rgba(9, 24, 77, 0.1);
-    transition: all 0.2s ease-in-out;
+    transition: none; /* Removing transition to prevent any hover effects */
 }
 
 /* A sombra laranja ATRÁS do card (mantida, pois você gostou) */
@@ -296,7 +260,11 @@ main {
     background: var(--laranja);
     z-index: -1;
     border: 3px solid var(--azul-escuro);
-    transition: all 0.2s ease-in-out;
+    transition: none; /* Removing transition to prevent any hover effects */
+}
+
+.card:hover {
+    transform: none; /* Remove any hover transformation on the card itself */
 }
 
 .card:hover::after {
@@ -347,19 +315,17 @@ main {
     box-shadow: 3px 3px 0 var(--azul-escuro);
 }
 
-/* MODIFICADOR DE NOTÍCIA (APENAS A SOMBRA ATRÁS FICA VERDE) */
+/* MODIFICADOR DE NOTÍCIA (APENAS A SOMBRA ATRÁS FICA VERDE, CARD BACKGROUND NÃO MUDA) */
 .card-verde {
     border-color: var(--verde-forte);
-}
-.card-verde {
-    border-color: var(--verde-forte);
+    background: var(--branco) !important; /* Ensure background stays white */
 }
 .card-verde::after {
     background: var(--verde-forte); /* Sombra atrás verde */
     border-color: var(--verde-forte);
 }
 .card-verde:hover::after {
-    background: var(--verde-forte); /* Mantém verde no hover também, sem pintar o card inteiro */
+    background: var(--verde-forte); /* Mantém verde no hover também */
 }
 .card-verde .card-categoria {
     background: #C8E6C9;
@@ -370,6 +336,12 @@ main {
 }
 .card-verde .card-link:hover {
     background: #1e5a38;
+}
+
+/* Ensure no other pseudo-class changes the card background */
+.card:active,
+.card:focus {
+    background: var(--branco);
 }
 
 .carregando {

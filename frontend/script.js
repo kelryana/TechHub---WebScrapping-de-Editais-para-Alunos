@@ -53,7 +53,6 @@ async function carregarDados(tipo, novaPagina = 1) {
     }
 }
 
-// Renderiza os botões de Anterior e Próximo mantendo o seu estilo original robusto
 function renderizarControlesPaginacao(atual, total, limite) {
     const antigo = document.getElementById('bloco-paginacao');
     if(antigo) antigo.remove();
